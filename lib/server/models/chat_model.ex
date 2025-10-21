@@ -7,11 +7,19 @@ defmodule Server.Models.ChatModel do
   import Ecto.Changeset
 
   @required [:state]
+  @optional [:name, :private]
 
   @states [:active, :inactive]
 
   schema "chats" do
     field :state, Ecto.Enum, values: @states
+    field :name, :string
+    field :private, :boolean, default: true
+
+    # Associations
+    has_many :chat_members, Server.Models.ChatMemberModel, foreign_key: :chat_id
+    has_many :members, through: [:chat_members, :user]
+    has_many :messages, Server.Models.MessageModel, foreign_key: :chat_id
 
     timestamps()
   end
@@ -28,7 +36,52 @@ defmodule Server.Models.ChatModel do
   """
   def changeset(%__MODULE__{} = chat, attrs) do
     chat
+    |> cast(attrs, @required ++ @optional)
+    |> validate_required(@required)
+    |> validate_length(:name, max: 100)
+  end
+
+  @doc """
+  Changeset for creating a direct chat
+  """
+  def direct_chat_changeset(%__MODULE__{} = chat, attrs) do
+    chat
     |> cast(attrs, @required)
     |> validate_required(@required)
+    |> put_change(:private, true)
+  end
+
+  @doc """
+  Changeset for creating a group chat
+  """
+  def group_chat_changeset(%__MODULE__{} = chat, attrs) do
+    chat
+    |> cast(attrs, @required ++ [:name, :private])
+    |> validate_required(@required ++ [:name])
+    |> validate_length(:name, min: 1, max: 100)
+  end
+
+  @doc """
+  Check if a chat is a direct message (2 members)
+  """
+  def direct?(%__MODULE__{} = chat) do
+    case Ecto.assoc_loaded?(chat.members) do
+      true -> length(chat.members) == 2
+      false -> false
+    end
+  end
+
+  @doc """
+  Get the other user in a direct chat
+  """
+  def other_user(%__MODULE__{} = chat, current_user_id) do
+    case Ecto.assoc_loaded?(chat.members) do
+      true ->
+        chat.members
+        |> Enum.reject(&(&1.id == current_user_id))
+        |> List.first()
+      false ->
+        nil
+    end
   end
 end
