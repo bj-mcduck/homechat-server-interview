@@ -18,6 +18,11 @@ defmodule ServerWeb.Endpoint do
 
   socket "/socket", ServerWeb.Socket, longpoll: false
 
+  # Configure Absinthe subscriptions
+  socket "/absinthe-socket", Absinthe.Phoenix.Socket,
+    websocket: true,
+    longpoll: false
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest

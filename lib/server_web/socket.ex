@@ -2,10 +2,10 @@ defmodule ServerWeb.Socket do
   @moduledoc false
 
   use Phoenix.Socket
-  use Absinthe.Phoenix.Socket, schema: ServerWeb.Core.Schemas.Schema
+  use Absinthe.Phoenix.Socket, schema: ServerWeb.Schemas.Schema
 
   ## Channels
-  # channel "room:*", HiiveWeb.RoomChannel
+  channel "chat:*", ServerWeb.ChatChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -19,8 +19,14 @@ defmodule ServerWeb.Socket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   @impl Phoenix.Socket
-  def connect(_params, socket, _connect_info) do
-    {:ok, socket}
+  def connect(params, socket, _connect_info) do
+    case authenticate_socket(params) do
+      {:ok, user} ->
+        {:ok, assign(socket, :current_user, user)}
+
+      {:error, _reason} ->
+        :error
+    end
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
@@ -34,5 +40,25 @@ defmodule ServerWeb.Socket do
   #
   # Returning `nil` makes this socket anonymous.
   @impl Phoenix.Socket
-  def id(_socket), do: nil
+  def id(socket) do
+    case socket.assigns do
+      %{current_user: %{id: user_id}} -> "user_socket:#{user_id}"
+      _ -> nil
+    end
+  end
+
+  # Private functions
+
+  defp authenticate_socket(params) do
+    case params do
+      %{"token" => token} ->
+        case Server.Guardian.verify_token(token) do
+          {:ok, user} -> {:ok, user}
+          {:error, _reason} -> {:error, :invalid_token}
+        end
+
+      _ ->
+        {:error, :missing_token}
+    end
+  end
 end
