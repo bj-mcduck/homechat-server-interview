@@ -22,9 +22,10 @@ defmodule ServerWeb.Router do
       "/",
       Absinthe.Plug,
       analyze_complexity: true,
-      schema: ServerWeb.Schema,
+      schema: ServerWeb.Schemas.Schema,
       socket: ServerWeb.Socket,
-      json_codec: Jason
+      json_codec: Jason,
+      context: %{current_user: nil}
     )
   end
 
