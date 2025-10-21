@@ -26,3 +26,12 @@ config :logger, level: :warning
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Guardian test configuration
+config :server, Server.Guardian,
+  secret_key: "test-secret-key-for-testing-only"
+
+# Argon2 test configuration (faster for tests)
+config :argon2_elixir,
+  t_cost: 1,
+  m_cost: 8
