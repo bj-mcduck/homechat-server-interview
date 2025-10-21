@@ -25,13 +25,13 @@ if config_env() == :dev do
   source(".env")
 
   config :server, Server.Repo,
-    username: env!("DATABASE_USERNAME", :string),
-    password: env!("DATABASE_PASSWORD", :string),
-    hostname: env!("DATABASE_HOSTNAME", :string),
-    database: env!("DATABASE_NAME", :string),
+    username: System.get_env("DATABASE_USERNAME") || "postgres",
+    password: System.get_env("DATABASE_PASSWORD") || "postgres",
+    hostname: System.get_env("DATABASE_HOSTNAME") || "localhost",
+    database: System.get_env("DATABASE_NAME") || "server_dev",
     stacktrace: true,
     show_sensitive_data_on_connection_error: true,
-    pool_size: env!("DATABASE_POOL_SIZE", :integer, 10),
+    pool_size: String.to_integer(System.get_env("DATABASE_POOL_SIZE") || "10"),
     timeout: 120_000
 end
 
