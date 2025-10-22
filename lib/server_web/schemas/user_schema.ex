@@ -31,6 +31,18 @@ defmodule ServerWeb.Schemas.UserSchema do
       end)
     end
 
+    field :users, list_of(:user) do
+      arg :limit, :integer, default_value: 10
+      arg :offset, :integer, default_value: 0
+      middleware(Authenticate)
+      resolve(fn args, %{context: %{current_user: _user}} ->
+        users = Accounts.list_users()
+        |> Enum.drop(args.offset)
+        |> Enum.take(args.limit)
+        {:ok, users}
+      end)
+    end
+
     field :search_users, list_of(:user) do
       arg :query, non_null(:string)
       middleware(Authenticate)
