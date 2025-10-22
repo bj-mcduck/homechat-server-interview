@@ -108,7 +108,7 @@ defmodule Server.Chats do
       with {:ok, chat} <- create_chat(%{state: :active}),
            {:ok, _} <- add_chat_member(chat.id, user1_id, :owner),
            {:ok, _} <- add_chat_member(chat.id, user2_id, :member) do
-        get_chat_with_members(chat.id)
+        get_chat_with_members(chat.nanoid)
       else
         {:error, changeset} -> Repo.rollback(changeset)
       end
@@ -123,7 +123,7 @@ defmodule Server.Chats do
       with {:ok, chat} <- create_chat(attrs),
            {:ok, _} <- add_chat_member(chat.id, creator_id, :owner),
            {:ok, _} <- add_chat_members(chat.id, member_ids, :member) do
-        get_chat_with_members(chat.id)
+        get_chat_with_members(chat.nanoid)
       else
         {:error, changeset} -> Repo.rollback(changeset)
       end
@@ -184,8 +184,8 @@ defmodule Server.Chats do
         chat_id: chat_id,
         user_id: user_id,
         role: role,
-        inserted_at: DateTime.utc_now(),
-        updated_at: DateTime.utc_now()
+        inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+        updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
       }
     end)
 

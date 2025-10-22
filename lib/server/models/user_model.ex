@@ -62,6 +62,7 @@ defmodule Server.Models.UserModel do
     |> validate_length(:username, min: 3, max: 20)
     |> unique_constraint(:email)
     |> unique_constraint(:username)
+    |> put_nanoid()
     |> hash_password()
   end
 

@@ -78,11 +78,11 @@ defmodule ServerWeb.Schemas.ChatSchema do
       middleware(Authenticate)
       resolve(fn %{name: name, participant_ids: participant_nanoids}, %{context: %{current_user: current_user}} ->
         # Convert nanoids to IDs
-        participant_ids = 
+        participant_ids =
           participant_nanoids
           |> Enum.map(&Server.Accounts.get_user_id/1)
           |> Enum.reject(&is_nil/1)
-        
+
         if length(participant_ids) != length(participant_nanoids) do
           {:error, "One or more users not found"}
         else

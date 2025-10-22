@@ -58,7 +58,7 @@ defmodule Server.Messages do
   """
   def send_message(chat_nanoid, user_id, content) do
     case Chats.get_chat_id(chat_nanoid) do
-      nil -> 
+      nil ->
         {:error, :not_found}
       chat_id ->
         # Check if user is a member of the chat

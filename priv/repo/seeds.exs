@@ -52,7 +52,7 @@ users = [
 created_users = Enum.map(users, fn user_attrs ->
   case Accounts.create_user(user_attrs) do
     {:ok, user} -> user
-    {:error, changeset} -> 
+    {:error, changeset} ->
       IO.puts("Failed to create user #{user_attrs.email}: #{inspect(changeset.errors)}")
       nil
   end
@@ -88,24 +88,24 @@ IO.puts("Created 2 group chats")
 
 # Create some sample messages
 sample_messages = [
-  {alice_bob_chat.id, alice.id, "Hey Bob! How are you?"},
-  {alice_bob_chat.id, bob.id, "Hi Alice! I'm doing great, thanks for asking."},
-  {alice_bob_chat.id, alice.id, "Want to grab coffee later?"},
-  {charlie_diana_chat.id, charlie.id, "Diana, did you see the latest news?"},
-  {charlie_diana_chat.id, diana.id, "Yes! It's quite interesting."},
-  {group_chat.id, alice.id, "Welcome everyone to our group chat!"},
-  {group_chat.id, bob.id, "Thanks for creating this, Alice!"},
-  {group_chat.id, charlie.id, "Great to be here!"},
-  {group_chat.id, diana.id, "Looking forward to our discussions!"},
-  {public_chat.id, alice.id, "This is a public chat room"},
-  {public_chat.id, bob.id, "Anyone can join this chat"},
-  {public_chat.id, charlie.id, "Cool! I can see this from outside"}
+  {alice_bob_chat.nanoid, alice.id, "Hey Bob! How are you?"},
+  {alice_bob_chat.nanoid, bob.id, "Hi Alice! I'm doing great, thanks for asking."},
+  {alice_bob_chat.nanoid, alice.id, "Want to grab coffee later?"},
+  {charlie_diana_chat.nanoid, charlie.id, "Diana, did you see the latest news?"},
+  {charlie_diana_chat.nanoid, diana.id, "Yes! It's quite interesting."},
+  {group_chat.nanoid, alice.id, "Welcome everyone to our group chat!"},
+  {group_chat.nanoid, bob.id, "Thanks for creating this, Alice!"},
+  {group_chat.nanoid, charlie.id, "Great to be here!"},
+  {group_chat.nanoid, diana.id, "Looking forward to our discussions!"},
+  {public_chat.nanoid, alice.id, "This is a public chat room"},
+  {public_chat.nanoid, bob.id, "Anyone can join this chat"},
+  {public_chat.nanoid, charlie.id, "Cool! I can see this from outside"}
 ]
 
 Enum.each(sample_messages, fn {chat_id, user_id, content} ->
   case Messages.send_message(chat_id, user_id, content) do
     {:ok, _message} -> :ok
-    {:error, reason} -> 
+    {:error, reason} ->
       IO.puts("Failed to create message: #{inspect(reason)}")
   end
 end)
@@ -121,18 +121,21 @@ alias Server.Models.UserModel
   %{
     first_name: "User",
     last_name: "1",
+    username: "user1",
     email: "user_1@test.com",
     state: :active
   },
   %{
     first_name: "User",
     last_name: "2",
+    username: "user2",
     email: "user_2@test.com",
     state: :active
   },
   %{
     first_name: "User",
     last_name: "3",
+    username: "user3",
     email: "user_3@test.com",
     state: :active
   }
