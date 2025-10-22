@@ -5,6 +5,11 @@ defmodule ServerWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :graphql do
+    plug :accepts, ["json"]
+    plug ServerWeb.AuthContext
+  end
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -16,7 +21,7 @@ defmodule ServerWeb.Router do
   end
 
   scope "/graphql" do
-    pipe_through([:api])
+    pipe_through([:graphql])
 
     forward(
       "/",
@@ -24,8 +29,7 @@ defmodule ServerWeb.Router do
       analyze_complexity: true,
       schema: ServerWeb.Schemas.Schema,
       socket: ServerWeb.Socket,
-      json_codec: Jason,
-      context: %{current_user: nil}
+      json_codec: Jason
     )
   end
 
