@@ -41,8 +41,15 @@ defmodule Server.Accounts do
 
   @doc """
   Creates a user.
+  
+  Defaults to :active state. The state field is used for account lifecycle:
+  - :active - User can login and use the system
+  - :inactive - Soft delete (account deactivated/suspended)
   """
   def create_user(attrs \\ %{}) do
+    # Default new users to active state
+    attrs = Map.put_new(attrs, :state, :active)
+    
     %UserModel{}
     |> UserModel.registration_changeset(attrs)
     |> Repo.insert()
