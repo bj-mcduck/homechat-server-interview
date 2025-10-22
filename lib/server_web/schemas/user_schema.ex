@@ -37,11 +37,23 @@ defmodule ServerWeb.Schemas.UserSchema do
     field :users, list_of(:user) do
       arg :limit, :integer, default_value: 10
       arg :offset, :integer, default_value: 0
+      arg :exclude_self, :boolean, default_value: false
       middleware(Authenticate)
-      resolve(fn args, %{context: %{current_user: _user}} ->
+      resolve(fn args, %{context: %{current_user: current_user}} ->
         users = Accounts.list_users()
+
+        # Filter out current user if requested
+        users = if args.exclude_self do
+          Enum.reject(users, &(&1.id == current_user.id))
+        else
+          users
+        end
+
+        # Apply pagination
+        users = users
         |> Enum.drop(args.offset)
         |> Enum.take(args.limit)
+
         {:ok, users}
       end)
     end

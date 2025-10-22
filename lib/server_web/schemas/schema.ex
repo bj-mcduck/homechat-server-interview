@@ -4,6 +4,10 @@ defmodule ServerWeb.Schemas.Schema do
   use Absinthe.Schema
   use Absinthe.Relay.Schema, :modern
 
+  def subscription(config) do
+    {:ok, Keyword.put(config, :pubsub, Server.PubSub)}
+  end
+
   import_types(Absinthe.Type.Custom)
   import_types(ServerWeb.Schemas.ChatSchema)
   import_types(ServerWeb.Schemas.UserSchema)
@@ -38,5 +42,7 @@ defmodule ServerWeb.Schemas.Schema do
   def middleware(middleware, _field, _object), do: middleware
 
   @impl Absinthe.Schema
-  def plugins, do: [Absinthe.Middleware.Dataloader] ++ Absinthe.Plugin.defaults()
+  def plugins do
+    [Absinthe.Middleware.Dataloader] ++ Absinthe.Plugin.defaults()
+  end
 end

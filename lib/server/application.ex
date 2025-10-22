@@ -15,7 +15,8 @@ defmodule Server.Application do
       # Start a worker by calling: Server.Worker.start_link(arg)
       # {Server.Worker, arg},
       # Start to serve requests, typically the last entry
-      ServerWeb.Endpoint
+      ServerWeb.Endpoint,
+      {Absinthe.Subscription, ServerWeb.Endpoint}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

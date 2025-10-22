@@ -1,16 +1,28 @@
 # Chat Messaging API
 
-A real-time chat messaging system built with Phoenix, Elixir, and GraphQL. Features JWT authentication, direct messaging, group chats, and real-time updates via WebSockets.
+A real-time chat messaging system built with Phoenix, Elixir, and GraphQL. Features JWT authentication, direct messaging, group chats, and real-time updates via GraphQL subscriptions.
 
 ## Features
 
 - **JWT Authentication** - Secure user authentication with argon2 password hashing
 - **Direct Messaging** - 1-on-1 private conversations between users
 - **Group Chats** - Multi-user chat rooms with member management
-- **Real-time Updates** - Live messaging via Phoenix Channels and GraphQL subscriptions
+- **Real-time Updates** - Live messaging via GraphQL subscriptions (WebSocket-based)
 - **User Search** - Find users by username, first name, or last name
 - **Public/Private Chats** - Discoverable public chat rooms and private groups
 - **GraphQL API** - Complete GraphQL API with queries, mutations, and subscriptions
+- **Type Safety** - Full type safety between frontend and backend via GraphQL schema
+
+## Architecture
+
+This project follows enterprise-grade architectural patterns. See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed design decisions and rationale.
+
+**Key Architectural Decisions:**
+- **GraphQL Subscriptions** for real-time messaging (API consistency, type safety)
+- **JWT Authentication** for stateless, scalable authentication
+- **NanoID** for public API identifiers (shorter, type-identifiable, secure)
+- **Argon2** password hashing (OWASP recommended)
+- **ChatMember join table** for flexible relationship management
 
 ## Tech Stack
 
@@ -19,7 +31,7 @@ A real-time chat messaging system built with Phoenix, Elixir, and GraphQL. Featu
 - **Authentication**: JWT with Guardian
 - **Password Hashing**: Argon2 (OWASP recommended)
 - **API**: GraphQL with Absinthe
-- **Real-time**: Phoenix Channels + Absinthe Subscriptions
+- **Real-time**: GraphQL Subscriptions (primary), Phoenix Channels (presence/typing)
 - **Testing**: ExUnit with ExMachina factories
 
 ## Getting Started

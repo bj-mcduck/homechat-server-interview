@@ -1,6 +1,14 @@
 defmodule ServerWeb.ChatChannel do
   @moduledoc """
-  Channel for real-time chat communication.
+  Phoenix Channel for real-time chat features.
+
+  This channel handles:
+  - Presence tracking (who's online)
+  - Typing indicators
+  - Legacy message handling (deprecated in favor of GraphQL subscriptions)
+
+  Note: Primary real-time messaging is handled via GraphQL subscriptions
+  for API consistency and type safety.
   """
 
   use Phoenix.Channel
@@ -23,6 +31,8 @@ defmodule ServerWeb.ChatChannel do
 
   @impl true
   def handle_in("new_message", %{"content" => content}, socket) do
+    # DEPRECATED: Use GraphQL sendMessage mutation instead
+    # This is kept for backward compatibility only
     user = socket.assigns.current_user
     chat_nanoid = get_chat_id_from_topic(socket.topic)
 
@@ -35,9 +45,6 @@ defmodule ServerWeb.ChatChannel do
           user_id: user.nanoid,
           inserted_at: message.inserted_at
         })
-
-        # Also broadcast to Absinthe subscriptions
-        Absinthe.Subscription.publish(ServerWeb.Endpoint, message, message_sent: "chat:#{chat_nanoid}")
 
         {:noreply, socket}
 

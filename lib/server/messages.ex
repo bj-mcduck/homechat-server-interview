@@ -65,11 +65,16 @@ defmodule Server.Messages do
         unless Chats.user_member_of_chat?(user_id, chat_id) do
           {:error, :forbidden}
         else
-          create_message(%{
+          case create_message(%{
             chat_id: chat_id,
             user_id: user_id,
             content: content
-          })
+          }) do
+            {:ok, message} ->
+              {:ok, Repo.preload(message, :user)}
+            error ->
+              error
+          end
         end
     end
   end

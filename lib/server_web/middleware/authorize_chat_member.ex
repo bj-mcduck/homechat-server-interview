@@ -10,13 +10,19 @@ defmodule ServerWeb.Middleware.AuthorizeChatMember do
   def call(resolution, _config) do
     case resolution.context do
       %{current_user: %{id: user_id}} ->
-        chat_id = get_chat_id_from_args(resolution.arguments)
-        
-        if chat_id && Chats.user_member_of_chat?(user_id, chat_id) do
-          resolution
-        else
-          resolution
-          |> Absinthe.Resolution.put_result({:error, "Access denied"})
+        chat_nanoid = get_chat_id_from_args(resolution.arguments)
+
+        case chat_nanoid && Chats.get_chat_id(chat_nanoid) do
+          nil ->
+            resolution
+            |> Absinthe.Resolution.put_result({:error, "Chat not found"})
+          chat_id ->
+            if Chats.user_member_of_chat?(user_id, chat_id) do
+              resolution
+            else
+              resolution
+              |> Absinthe.Resolution.put_result({:error, "Access denied"})
+            end
         end
 
       _ ->
