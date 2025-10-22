@@ -64,6 +64,8 @@ defmodule Server.MixProject do
       {:argon2_elixir, "~> 4.0"},
       {:joken, "~> 2.6"},
       {:guardian, "~> 2.3"},
+      # NanoID for public IDs
+      {:nanoid, "~> 2.1"},
       # Testing
       {:ex_machina, "~> 2.8", only: :test}
     ]
