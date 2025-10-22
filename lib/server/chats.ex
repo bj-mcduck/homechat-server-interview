@@ -38,35 +38,45 @@ defmodule Server.Chats do
   def list_discoverable_chats(user_id) do
     user_chats = list_user_chats(user_id)
     public_chats = list_public_chats()
-    
+
     # Remove duplicates (in case user is in a public chat)
     all_chats = user_chats ++ public_chats
     Enum.uniq_by(all_chats, & &1.id)
   end
 
   @doc """
-  Gets a single chat.
+  Gets a single chat by nanoid.
   """
-  def get_chat!(id), do: Repo.get!(ChatModel, id)
+  def get_chat!(nanoid), do: Repo.get_by!(ChatModel, nanoid: nanoid)
 
   @doc """
-  Gets a single chat by id.
+  Gets a single chat by nanoid.
   """
-  def get_chat(id), do: Repo.get(ChatModel, id)
+  def get_chat(nanoid), do: Repo.get_by(ChatModel, nanoid: nanoid)
 
   @doc """
-  Gets a chat with members preloaded.
+  Gets a chat with members preloaded by nanoid.
   """
-  def get_chat_with_members(id) do
+  def get_chat_with_members(nanoid) do
     from(c in ChatModel,
-      where: c.id == ^id,
+      where: c.nanoid == ^nanoid,
       preload: [:members, :messages]
     )
     |> Repo.one()
   end
 
   @doc """
-  Checks if a user is a member of a chat.
+  Gets a chat's internal ID by nanoid.
+  """
+  def get_chat_id(nanoid) do
+    case get_chat(nanoid) do
+      nil -> nil
+      chat -> chat.id
+    end
+  end
+
+  @doc """
+  Checks if a user is a member of a chat (internal function using integer IDs).
   """
   def user_member_of_chat?(user_id, chat_id) do
     from(cm in ChatMemberModel,

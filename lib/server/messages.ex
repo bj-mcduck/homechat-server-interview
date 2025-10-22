@@ -9,21 +9,29 @@ defmodule Server.Messages do
   alias Server.Chats
 
   @doc """
-  Returns the list of messages for a chat.
+  Returns the list of messages for a chat by nanoid.
   """
-  def list_messages(chat_id, opts \\ []) do
-    MessageModel.paginated(chat_id, opts)
-    |> Repo.all()
-    |> Repo.preload(:user)
+  def list_messages(chat_nanoid, opts \\ []) do
+    case Chats.get_chat_id(chat_nanoid) do
+      nil -> []
+      chat_id ->
+        MessageModel.paginated(chat_id, opts)
+        |> Repo.all()
+        |> Repo.preload(:user)
+    end
   end
 
   @doc """
-  Returns recent messages for a chat.
+  Returns recent messages for a chat by nanoid.
   """
-  def list_recent_messages(chat_id, limit \\ 20) do
-    MessageModel.recent(chat_id, limit)
-    |> Repo.all()
-    |> Repo.preload(:user)
+  def list_recent_messages(chat_nanoid, limit \\ 20) do
+    case Chats.get_chat_id(chat_nanoid) do
+      nil -> []
+      chat_id ->
+        MessageModel.recent(chat_id, limit)
+        |> Repo.all()
+        |> Repo.preload(:user)
+    end
   end
 
   @doc """
@@ -46,18 +54,23 @@ defmodule Server.Messages do
   end
 
   @doc """
-  Sends a message to a chat (with permission check).
+  Sends a message to a chat by nanoid (with permission check).
   """
-  def send_message(chat_id, user_id, content) do
-    # Check if user is a member of the chat
-    unless Chats.user_member_of_chat?(user_id, chat_id) do
-      {:error, :forbidden}
-    else
-      create_message(%{
-        chat_id: chat_id,
-        user_id: user_id,
-        content: content
-      })
+  def send_message(chat_nanoid, user_id, content) do
+    case Chats.get_chat_id(chat_nanoid) do
+      nil -> 
+        {:error, :not_found}
+      chat_id ->
+        # Check if user is a member of the chat
+        unless Chats.user_member_of_chat?(user_id, chat_id) do
+          {:error, :forbidden}
+        else
+          create_message(%{
+            chat_id: chat_id,
+            user_id: user_id,
+            content: content
+          })
+        end
     end
   end
 

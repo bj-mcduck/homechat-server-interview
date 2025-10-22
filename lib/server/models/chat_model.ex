@@ -10,11 +10,13 @@ defmodule Server.Models.ChatModel do
   @optional [:name, :private]
 
   @states [:active, :inactive]
+  @nanoid_prefix "cht"
 
   schema "chats" do
     field :state, Ecto.Enum, values: @states
     field :name, :string
     field :private, :boolean, default: true
+    field :nanoid, :string
 
     # Associations
     has_many :chat_members, Server.Models.ChatMemberModel, foreign_key: :chat_id
@@ -39,6 +41,7 @@ defmodule Server.Models.ChatModel do
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> validate_length(:name, max: 100)
+    |> put_nanoid()
   end
 
   @doc """
@@ -83,5 +86,16 @@ defmodule Server.Models.ChatModel do
       false ->
         nil
     end
+  end
+
+  defp put_nanoid(changeset) do
+    case get_field(changeset, :nanoid) do
+      nil -> put_change(changeset, :nanoid, generate_nanoid())
+      _ -> changeset
+    end
+  end
+
+  defp generate_nanoid do
+    "#{@nanoid_prefix}_#{Nanoid.generate(10)}"
   end
 end

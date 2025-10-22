@@ -21,9 +21,19 @@ defmodule Server.Accounts do
   def get_user!(id), do: Repo.get!(UserModel, id)
 
   @doc """
-  Gets a single user by id.
+  Gets a single user by nanoid.
   """
-  def get_user(id), do: Repo.get(UserModel, id)
+  def get_user(nanoid), do: Repo.get_by(UserModel, nanoid: nanoid)
+
+  @doc """
+  Gets a user's internal ID by nanoid.
+  """
+  def get_user_id(nanoid) do
+    case get_user(nanoid) do
+      nil -> nil
+      user -> user.id
+    end
+  end
 
   @doc """
   Gets a user by email.
@@ -41,7 +51,7 @@ defmodule Server.Accounts do
 
   @doc """
   Creates a user.
-  
+
   Defaults to :active state. The state field is used for account lifecycle:
   - :active - User can login and use the system
   - :inactive - Soft delete (account deactivated/suspended)
@@ -49,7 +59,7 @@ defmodule Server.Accounts do
   def create_user(attrs \\ %{}) do
     # Default new users to active state
     attrs = Map.put_new(attrs, :state, :active)
-    
+
     %UserModel{}
     |> UserModel.registration_changeset(attrs)
     |> Repo.insert()

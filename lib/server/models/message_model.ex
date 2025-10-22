@@ -8,8 +8,11 @@ defmodule Server.Models.MessageModel do
 
   @required [:content, :chat_id, :user_id]
 
+  @nanoid_prefix "msg"
+
   schema "messages" do
     field :content, :string
+    field :nanoid, :string
 
     belongs_to :chat, Server.Models.ChatModel
     belongs_to :user, Server.Models.UserModel
@@ -32,6 +35,7 @@ defmodule Server.Models.MessageModel do
     |> cast(attrs, @required)
     |> validate_required(@required)
     |> validate_length(:content, min: 1, max: 2000)
+    |> put_nanoid()
   end
 
   @doc """
@@ -66,5 +70,16 @@ defmodule Server.Models.MessageModel do
       order_by: [desc: :inserted_at],
       limit: ^limit
     )
+  end
+
+  defp put_nanoid(changeset) do
+    case get_field(changeset, :nanoid) do
+      nil -> put_change(changeset, :nanoid, generate_nanoid())
+      _ -> changeset
+    end
+  end
+
+  defp generate_nanoid do
+    "#{@nanoid_prefix}_#{Nanoid.generate(10)}"
   end
 end

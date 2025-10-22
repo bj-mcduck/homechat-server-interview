@@ -8,7 +8,10 @@ defmodule ServerWeb.Schemas.UserSchema do
   alias ServerWeb.Middleware.Authenticate
 
   object :user do
-    field :id, non_null(:id)
+    # Expose nanoid as the public ID, hide internal integer ID
+    field :id, non_null(:string) do
+      resolve(fn user, _, _ -> {:ok, user.nanoid} end)
+    end
     field :email, non_null(:string)
     field :username, non_null(:string)
     field :first_name, non_null(:string)

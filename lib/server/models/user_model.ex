@@ -10,6 +10,7 @@ defmodule Server.Models.UserModel do
   @optional [:password]
 
   @states [:active, :inactive]
+  @nanoid_prefix "usr"
 
   schema "users" do
     field :email, :string
@@ -19,6 +20,7 @@ defmodule Server.Models.UserModel do
     field :state, Ecto.Enum, values: @states
     field :password_hash, :string
     field :password, :string, virtual: true
+    field :nanoid, :string
 
     # Associations
     has_many :chat_members, Server.Models.ChatMemberModel, foreign_key: :user_id
@@ -44,6 +46,7 @@ defmodule Server.Models.UserModel do
     |> validate_required(@required)
     |> unique_constraint(:email)
     |> unique_constraint(:username)
+    |> put_nanoid()
   end
 
   @doc """
@@ -80,5 +83,16 @@ defmodule Server.Models.UserModel do
       _ ->
         changeset
     end
+  end
+
+  defp put_nanoid(changeset) do
+    case get_field(changeset, :nanoid) do
+      nil -> put_change(changeset, :nanoid, generate_nanoid())
+      _ -> changeset
+    end
+  end
+
+  defp generate_nanoid do
+    "#{@nanoid_prefix}_#{Nanoid.generate(10)}"
   end
 end

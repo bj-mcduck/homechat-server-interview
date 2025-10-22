@@ -7,40 +7,45 @@ defmodule ServerWeb.ChatChannel do
   alias Server.{Chats, Messages}
 
   @impl true
-  def join("chat:" <> chat_id, _payload, socket) do
+  def join("chat:" <> chat_nanoid, _payload, socket) do
     user = socket.assigns.current_user
 
-    case Chats.user_member_of_chat?(user.id, chat_id) do
-      true ->
-        {:ok, socket}
-
-      false ->
-        {:error, %{reason: "unauthorized"}}
+    case Chats.get_chat_id(chat_nanoid) do
+      nil ->
+        {:error, %{reason: "chat_not_found"}}
+      chat_id ->
+        case Chats.user_member_of_chat?(user.id, chat_id) do
+          true -> {:ok, socket}
+          false -> {:error, %{reason: "unauthorized"}}
+        end
     end
   end
 
   @impl true
   def handle_in("new_message", %{"content" => content}, socket) do
     user = socket.assigns.current_user
-    chat_id = get_chat_id_from_topic(socket.topic)
+    chat_nanoid = get_chat_id_from_topic(socket.topic)
 
-    case Messages.send_message(chat_id, user.id, content) do
+    case Messages.send_message(chat_nanoid, user.id, content) do
       {:ok, message} ->
         # Broadcast to all subscribers of this chat
         broadcast(socket, "new_message", %{
-          id: message.id,
+          id: message.nanoid,
           content: message.content,
-          user_id: message.user_id,
+          user_id: user.nanoid,
           inserted_at: message.inserted_at
         })
 
         # Also broadcast to Absinthe subscriptions
-        Absinthe.Subscription.publish(ServerWeb.Endpoint, message, message_sent: "chat:#{chat_id}")
+        Absinthe.Subscription.publish(ServerWeb.Endpoint, message, message_sent: "chat:#{chat_nanoid}")
 
         {:noreply, socket}
 
       {:error, :forbidden} ->
         {:reply, {:error, %{reason: "unauthorized"}}, socket}
+
+      {:error, :not_found} ->
+        {:reply, {:error, %{reason: "chat_not_found"}}, socket}
 
       {:error, changeset} ->
         {:reply, {:error, %{reason: "validation_failed", errors: changeset.errors}}, socket}
