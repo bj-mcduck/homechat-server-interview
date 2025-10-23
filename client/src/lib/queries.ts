@@ -71,3 +71,19 @@ export const USERS_QUERY = gql`
     }
   }
 `;
+
+export const CHAT_QUERY = gql`
+  query Chat($chatId: String!) {
+    chat(id: $chatId) {
+      id
+      name
+      private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;

@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { useMutation, useQuery } from 'urql';
+import { useMutation, useQuery, useSubscription } from 'urql';
 import { Paper, Title, Stack, Text, ScrollArea, Group, Avatar, ActionIcon, TextInput, Divider, Skeleton } from '@mantine/core';
 import { IconPlus, IconUser } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { ADD_CHAT_MEMBER_MUTATION } from '../../lib/mutations';
-import { USERS_QUERY } from '../../lib/queries';
+import { USERS_QUERY, CHAT_QUERY } from '../../lib/queries';
+import { CHAT_UPDATED_SUBSCRIPTION } from '../../lib/subscriptions';
 
 interface ChatMembersPanelProps {
   chatId: string;
@@ -19,10 +20,19 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
     query: USERS_QUERY,
     variables: { excludeSelf: true },
   });
+  const [{ data: chatData, fetching: chatFetching }] = useQuery({
+    query: CHAT_QUERY,
+    variables: { chatId },
+  });
 
-  // For now, we'll need to get chat data to show current members
-  // This would ideally come from a chat query, but for now we'll show a placeholder
-  const currentMembers: any[] = []; // TODO: Get from chat query
+  // Subscribe to chat updates for real-time member changes
+  const [{ data: subscriptionData }] = useSubscription({
+    query: CHAT_UPDATED_SUBSCRIPTION,
+    variables: { chatId },
+  });
+
+  // Use subscription data if available, otherwise fall back to query data
+  const currentMembers = subscriptionData?.chatUpdated?.members || chatData?.chat?.members || [];
   const users = usersData?.users || [];
 
   const filteredUsers = useMemo(() => {
@@ -35,6 +45,12 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
       user.username.toLowerCase().includes(term)
     );
   }, [users, searchTerm]);
+
+  // Filter out users who are already members
+  const availableUsers = useMemo(() => {
+    const memberIds = new Set(currentMembers.map(member => member.id));
+    return filteredUsers.filter(user => !memberIds.has(user.id));
+  }, [filteredUsers, currentMembers]);
 
   const handleAddMember = async (userId: string, userName: string) => {
     setAddingMember(userId);
@@ -75,6 +91,19 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
       setAddingMember(null);
     }
   };
+
+  if (chatFetching) {
+    return (
+      <Paper shadow="sm" style={{ height: '100vh', width: 300, padding: '1rem' }}>
+        <Stack gap="md">
+          <Skeleton height={24} width="60%" />
+          <Skeleton height={16} width="80%" />
+          <Skeleton height={16} width="70%" />
+          <Skeleton height={16} width="90%" />
+        </Stack>
+      </Paper>
+    );
+  }
 
   return (
     <Paper shadow="sm" style={{ height: '100vh', width: 300, padding: '1rem' }}>
@@ -133,12 +162,12 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
             <Stack gap="xs">
               {usersFetching ? (
                 <Skeleton height={40} />
-              ) : filteredUsers.length === 0 ? (
+              ) : availableUsers.length === 0 ? (
                 <Text size="sm" c="dimmed" ta="center" py="md">
                   {searchTerm ? 'No users found' : 'Search for users to add'}
                 </Text>
               ) : (
-                filteredUsers.map(user => (
+                availableUsers.map(user => (
                   <Group key={user.id} justify="space-between" p="xs" style={{ 
                     border: '1px solid #e9ecef', 
                     borderRadius: '6px',
