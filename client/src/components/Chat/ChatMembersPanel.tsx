@@ -94,7 +94,7 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
 
   if (chatFetching) {
     return (
-      <Paper shadow="sm" style={{ height: '100vh', width: 300, padding: '1rem' }}>
+      <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
         <Stack gap="md">
           <Skeleton height={24} width="60%" />
           <Skeleton height={16} width="80%" />
@@ -106,7 +106,7 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
   }
 
   return (
-    <Paper shadow="sm" style={{ height: '100vh', width: 300, padding: '1rem' }}>
+    <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
       <Stack gap="md" style={{ height: '100%' }}>
         <Title order={4}>Members ({currentMembers.length})</Title>
         

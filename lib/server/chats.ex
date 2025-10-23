@@ -180,6 +180,7 @@ defmodule Server.Chats do
         chat_id: chat_id,
         user_id: user_id,
         role: role,
+        nanoid: "mbr_#{Nanoid.generate(10)}",
         inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
         updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
       }

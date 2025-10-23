@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from 'urql';
+import { Paper, Group, Textarea, ActionIcon } from '@mantine/core';
+import { IconSend } from '@tabler/icons-react';
 import { SEND_MESSAGE_MUTATION } from '../../lib/mutations';
 
 interface MessageFormProps {
@@ -38,27 +40,47 @@ export const MessageForm = ({ chatId }: MessageFormProps) => {
   };
 
   return (
-    <div className="border-t bg-white p-4">
-      <form onSubmit={handleSubmit} className="flex space-x-3">
-        <div className="flex-1">
-          <textarea
+    <Paper 
+      shadow="sm" 
+      style={{ 
+        padding: '1rem',
+        borderTop: '1px solid #e9ecef',
+        backgroundColor: 'white'
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <Group gap="sm" align="flex-start">
+          <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder="Type your message..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none"
-            rows={1}
-            style={{ minHeight: '40px', maxHeight: '120px' }}
+            autosize
+            minRows={1}
+            maxRows={4}
+            style={{ flex: 1 }}
+            styles={{
+              input: {
+                resize: 'none'
+              }
+            }}
           />
-        </div>
-        <button
-          type="submit"
-          disabled={!content.trim() || isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? 'Sending...' : 'Send'}
-        </button>
+          <ActionIcon
+            type="submit"
+            disabled={!content.trim() || isSubmitting}
+            loading={isSubmitting}
+            size="lg"
+            variant="filled"
+            color="blue"
+            style={{ 
+              alignSelf: 'flex-start',
+              marginTop: '2px'
+            }}
+          >
+            <IconSend size={16} />
+          </ActionIcon>
+        </Group>
       </form>
-    </div>
+    </Paper>
   );
 };

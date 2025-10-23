@@ -24,11 +24,14 @@ export const Sidebar = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isDMModalOpen, setIsDMModalOpen] = useState(false);
   
-  const [{ data, fetching }] = useQuery({ query: USER_CHATS_QUERY });
+  const [{ data, fetching }] = useQuery({ 
+    query: USER_CHATS_QUERY,
+    requestPolicy: 'cache-and-network'
+  });
 
   if (fetching) {
     return (
-      <Paper shadow="sm" style={{ height: '100vh', width: 300, padding: '1rem' }}>
+      <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
         <Stack gap="md">
           <Skeleton height={24} width="60%" />
           <Skeleton height={16} width="80%" />
@@ -57,7 +60,7 @@ export const Sidebar = () => {
 
   return (
     <>
-      <Paper shadow="sm" style={{ height: '100vh', width: 300, padding: '1rem' }}>
+      <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
         <Stack gap="md" style={{ height: '100%' }}>
           <Title order={3}>Chats</Title>
           

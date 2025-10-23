@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { Text, Stack } from '@mantine/core';
 import { MessageList } from '../components/Chat/MessageList';
 import { MessageForm } from '../components/Chat/MessageForm';
+import { ChatHeader } from '../components/Chat/ChatHeader';
 
 export const ChatPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
@@ -21,6 +22,7 @@ export const ChatPage = () => {
 
   return (
     <Stack gap={0} style={{ flex: 1, height: '100%' }}>
+      <ChatHeader chatId={chatId} />
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <MessageList chatId={chatId} />
       </div>
