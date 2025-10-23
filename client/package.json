@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@absinthe/socket": "^0.2.1",
+    "@absinthe/socket-apollo-link": "^0.2.1",
     "@emotion/react": "^11.14.0",
     "@emotion/server": "^11.11.0",
     "@headlessui/react": "^2.2.9",
@@ -26,6 +28,7 @@
     "date-fns": "^4.1.0",
     "graphql": "^16.11.0",
     "graphql-ws": "^6.0.6",
+    "phoenix": "^1.8.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",

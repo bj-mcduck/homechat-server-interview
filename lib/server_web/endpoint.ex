@@ -18,10 +18,7 @@ defmodule ServerWeb.Endpoint do
 
   socket "/socket", ServerWeb.Socket, longpoll: false
 
-  # Configure Absinthe subscriptions
-  socket "/absinthe-socket", Absinthe.Phoenix.Socket,
-    websocket: true,
-    longpoll: false
+  # Absinthe subscriptions are handled through the main /socket endpoint
 
   # Serve at "/" the static files from "priv/static" directory.
   #

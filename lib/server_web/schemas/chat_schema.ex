@@ -44,7 +44,7 @@ defmodule ServerWeb.Schemas.ChatSchema do
     end
 
     field :chat, :chat do
-      arg :id, non_null(:id)
+      arg :id, non_null(:string)
       middleware(Authenticate)
       middleware(AuthorizeChatMember)
       resolve(fn %{id: id}, _info ->
