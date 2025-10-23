@@ -115,7 +115,10 @@ defmodule ServerWeb.Schemas.ChatSchema do
               {:ok, _} ->
                 case Chats.get_chat_with_members(chat_nanoid) do
                   nil -> {:error, "Chat not found"}
-                  chat -> {:ok, chat}
+                  chat ->
+                    # Publish to subscription for real-time updates
+                    Absinthe.Subscription.publish(ServerWeb.Endpoint, chat, chat_updated: "chat:#{chat_nanoid}")
+                    {:ok, chat}
                 end
               {:error, _} -> {:error, "Failed to add member"}
             end

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery } from 'urql';
 import { Button, Paper, Title, Stack, Text, ScrollArea, Group, Badge, Divider, Skeleton, ActionIcon } from '@mantine/core';
 import { IconPlus, IconMessageCircle, IconUsers } from '@tabler/icons-react';
-import { USER_CHATS_QUERY } from '../../lib/queries';
+import { DISCOVERABLE_CHATS_QUERY } from '../../lib/queries';
 import { CreateGroupChatModal } from '../Chat/CreateGroupChatModal';
 import { CreateDirectMessageModal } from '../Chat/CreateDirectMessageModal';
 
@@ -25,7 +25,7 @@ export const Sidebar = () => {
   const [isDMModalOpen, setIsDMModalOpen] = useState(false);
   
   const [{ data, fetching }] = useQuery({ 
-    query: USER_CHATS_QUERY,
+    query: DISCOVERABLE_CHATS_QUERY,
     requestPolicy: 'cache-and-network'
   });
 
@@ -42,7 +42,7 @@ export const Sidebar = () => {
     );
   }
 
-  const chats: Chat[] = data?.userChats || [];
+  const chats: Chat[] = data?.discoverableChats || [];
   const groupChats = chats.filter(chat => chat.name);
   const directMessages = chats.filter(chat => !chat.name);
 

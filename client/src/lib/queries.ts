@@ -87,3 +87,19 @@ export const CHAT_QUERY = gql`
     }
   }
 `;
+
+export const DISCOVERABLE_CHATS_QUERY = gql`
+  query DiscoverableChats {
+    discoverableChats {
+      id
+      name
+      private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;

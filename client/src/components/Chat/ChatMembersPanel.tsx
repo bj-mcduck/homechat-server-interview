@@ -23,6 +23,7 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
   const [{ data: chatData, fetching: chatFetching }] = useQuery({
     query: CHAT_QUERY,
     variables: { chatId },
+    requestPolicy: 'cache-and-network',
   });
 
   // Subscribe to chat updates for real-time member changes
