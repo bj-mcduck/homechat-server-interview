@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from 'urql';
-import { Button, Paper, Title, Stack, Text, ScrollArea, Group, Badge, Divider, Skeleton } from '@mantine/core';
+import { Button, Paper, Title, Stack, Text, ScrollArea, Group, Badge, Divider, Skeleton, ActionIcon } from '@mantine/core';
 import { IconPlus, IconMessageCircle, IconUsers } from '@tabler/icons-react';
 import { USER_CHATS_QUERY } from '../../lib/queries';
-import { CreateChatModal } from '../Chat/CreateChatModal';
+import { CreateGroupChatModal } from '../Chat/CreateGroupChatModal';
+import { CreateDirectMessageModal } from '../Chat/CreateDirectMessageModal';
 
 interface Chat {
   id: string;
@@ -20,7 +21,8 @@ interface Chat {
 
 export const Sidebar = () => {
   const { chatId } = useParams();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [isDMModalOpen, setIsDMModalOpen] = useState(false);
   
   const [{ data, fetching }] = useQuery({ query: USER_CHATS_QUERY });
 
@@ -65,9 +67,19 @@ export const Sidebar = () => {
               <Text size="sm" fw={500} c="dimmed">
                 Group Chats
               </Text>
-              <Badge size="sm" variant="light">
-                {groupChats.length}
-              </Badge>
+              <Group gap="xs">
+                <Badge size="sm" variant="light">
+                  {groupChats.length}
+                </Badge>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="blue"
+                  onClick={() => setIsGroupModalOpen(true)}
+                >
+                  <IconPlus size={14} />
+                </ActionIcon>
+              </Group>
             </Group>
             
             <ScrollArea style={{ height: 200 }}>
@@ -103,9 +115,19 @@ export const Sidebar = () => {
               <Text size="sm" fw={500} c="dimmed">
                 Direct Messages
               </Text>
-              <Badge size="sm" variant="light">
-                {directMessages.length}
-              </Badge>
+              <Group gap="xs">
+                <Badge size="sm" variant="light">
+                  {directMessages.length}
+                </Badge>
+                <ActionIcon
+                  size="sm"
+                  variant="subtle"
+                  color="blue"
+                  onClick={() => setIsDMModalOpen(true)}
+                >
+                  <IconPlus size={14} />
+                </ActionIcon>
+              </Group>
             </Group>
             
             <ScrollArea style={{ height: 200 }}>
@@ -133,20 +155,17 @@ export const Sidebar = () => {
             </ScrollArea>
           </div>
 
-          {/* Create Chat Button */}
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => setIsCreateModalOpen(true)}
-            fullWidth
-          >
-            Create Chat
-          </Button>
         </Stack>
       </Paper>
 
-      <CreateChatModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+      <CreateGroupChatModal
+        opened={isGroupModalOpen}
+        onClose={() => setIsGroupModalOpen(false)}
+      />
+      
+      <CreateDirectMessageModal
+        opened={isDMModalOpen}
+        onClose={() => setIsDMModalOpen(false)}
       />
     </>
   );

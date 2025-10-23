@@ -47,11 +47,25 @@ export const CREATE_DIRECT_CHAT_MUTATION = gql`
 `;
 
 export const CREATE_GROUP_CHAT_MUTATION = gql`
-  mutation CreateGroupChat($name: String!, $participantIds: [String!]!) {
-    createGroupChat(name: $name, participantIds: $participantIds) {
+  mutation CreateGroupChat($name: String!) {
+    createGroupChat(name: $name) {
       id
       name
       private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;
+
+export const ADD_CHAT_MEMBER_MUTATION = gql`
+  mutation AddChatMember($chatId: String!, $userId: String!) {
+    addChatMember(chatId: $chatId, userId: $userId) {
+      id
       members {
         id
         username

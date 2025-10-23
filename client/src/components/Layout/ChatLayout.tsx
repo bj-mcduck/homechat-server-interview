@@ -1,12 +1,18 @@
 import { type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
+import { ChatMembersPanel } from '../Chat/ChatMembersPanel';
 
 interface ChatLayoutProps {
   children: ReactNode;
 }
 
 export const ChatLayout = ({ children }: ChatLayoutProps) => {
+  const location = useLocation();
+  const isChatDetail = location.pathname.startsWith('/chat/') && location.pathname !== '/chat';
+  const chatId = isChatDetail ? location.pathname.split('/chat/')[1] : null;
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
@@ -15,6 +21,9 @@ export const ChatLayout = ({ children }: ChatLayoutProps) => {
         <main style={{ flex: 1, overflow: 'hidden' }}>
           {children}
         </main>
+        {isChatDetail && chatId && (
+          <ChatMembersPanel chatId={chatId} />
+        )}
       </div>
     </div>
   );
