@@ -1,148 +1,136 @@
 import { useState } from 'react';
 import { useMutation } from 'urql';
+import { Button, TextInput, Paper, Title, Stack, Alert } from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { REGISTER_MUTATION } from '../../lib/mutations';
 import { useAuth } from '../../hooks/useAuth';
 
 export const RegisterForm = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    username: '',
-    firstName: '',
-    lastName: '',
-  });
   const [error, setError] = useState<string | null>(null);
   
   const [, register] = useMutation(REGISTER_MUTATION);
   const { setAuth } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm({
+    initialValues: {
+      email: '',
+      password: '',
+      username: '',
+      firstName: '',
+      lastName: '',
+    },
+    validate: {
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+      password: (value) => (value.length < 6 ? 'Password must be at least 6 characters' : null),
+      username: (value) => (value.length < 3 ? 'Username must be at least 3 characters' : null),
+      firstName: (value) => (value.length < 1 ? 'First name is required' : null),
+      lastName: (value) => (value.length < 1 ? 'Last name is required' : null),
+    },
+  });
+
+  const handleSubmit = async (values: typeof form.values) => {
     setError(null);
     
     try {
-      const result = await register(formData);
+      console.log('Submitting registration with:', values);
+      const result = await register(values);
+      
+      console.log('Registration result:', result);
       
       if (result.error) {
+        console.error('Registration error:', result.error);
         setError(result.error.message);
+        notifications.show({
+          title: 'Registration Failed',
+          message: result.error.message,
+          color: 'red',
+        });
         return;
       }
       
       if (result.data?.register) {
+        console.log('Registration successful:', result.data.register);
         setAuth(result.data.register.user, result.data.register.token);
+        notifications.show({
+          title: 'Registration Successful',
+          message: 'Welcome to Chat App!',
+          color: 'green',
+        });
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError('Registration failed. Please try again.');
+      notifications.show({
+        title: 'Registration Failed',
+        message: 'Registration failed. Please try again.',
+        color: 'red',
+      });
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
   return (
-    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+    <Paper shadow="sm" p="xl" style={{ maxWidth: 400, margin: '0 auto' }}>
+      <Title order={2} ta="center" mb="md">
+        Register
+      </Title>
       
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <Alert color="red" mb="md">
           {error}
-        </div>
+        </Alert>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
+      <form onSubmit={form.onSubmit(handleSubmit)}>
+        <Stack>
+          <TextInput
+            label="Email"
+            placeholder="your@email.com"
             required
-            value={formData.email}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            {...form.getInputProps('email')}
           />
-        </div>
-        
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
+          
+          <TextInput
+            label="Password"
             type="password"
-            id="password"
-            name="password"
+            placeholder="Your password"
             required
-            value={formData.password}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            {...form.getInputProps('password')}
           />
-        </div>
-        
-        <div>
-          <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-            Username
-          </label>
-          <input
-            type="text"
-            id="username"
-            name="username"
+          
+          <TextInput
+            label="Username"
+            placeholder="your_username"
             required
-            value={formData.username}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            {...form.getInputProps('username')}
           />
-        </div>
-        
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-            First Name
-          </label>
-          <input
-            type="text"
-            id="firstName"
-            name="firstName"
+          
+          <TextInput
+            label="First Name"
+            placeholder="John"
             required
-            value={formData.firstName}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            {...form.getInputProps('firstName')}
           />
-        </div>
-        
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-            Last Name
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            name="lastName"
+          
+          <TextInput
+            label="Last Name"
+            placeholder="Doe"
             required
-            value={formData.lastName}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            {...form.getInputProps('lastName')}
           />
-        </div>
-        
-        <button
-          type="submit"
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Register
-        </button>
+          
+          <Button type="submit" fullWidth>
+            Register
+          </Button>
+        </Stack>
       </form>
       
-      <p className="mt-4 text-center text-sm text-gray-600">
+      <div style={{ textAlign: 'center', marginTop: '1rem' }}>
         Already have an account?{' '}
-        <a href="/signin" className="text-blue-600 hover:text-blue-500">
+        <a href="/signin" style={{ color: '#228be6' }}>
           Sign in
         </a>
-      </p>
-    </div>
+      </div>
+    </Paper>
   );
 };
