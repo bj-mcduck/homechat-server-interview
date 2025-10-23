@@ -9,8 +9,10 @@ export const client = createClient({
   exchanges: [fetchExchange],
   fetchOptions: () => {
     const token = getAuthToken();
+    console.log('GraphQL client fetchOptions called, token:', token ? 'present' : 'none');
     return {
       headers: {
+        'Content-Type': 'application/json',
         Authorization: token ? `Bearer ${token}` : '',
       },
     };

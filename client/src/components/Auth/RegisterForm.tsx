@@ -34,6 +34,8 @@ export const RegisterForm = () => {
     
     try {
       console.log('Submitting registration with:', values);
+      console.log('GraphQL client URL:', 'http://localhost:4000/graphql');
+      
       const result = await register(values);
       
       console.log('Registration result:', result);
@@ -60,6 +62,11 @@ export const RegisterForm = () => {
       }
     } catch (err) {
       console.error('Registration error:', err);
+      console.error('Error details:', {
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      });
       setError('Registration failed. Please try again.');
       notifications.show({
         title: 'Registration Failed',

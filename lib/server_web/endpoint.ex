@@ -56,6 +56,9 @@ defmodule ServerWeb.Endpoint do
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
 
+  # Configure CORS for development
+  plug CORSPlug, origin: ["http://localhost:5173", "http://localhost:3000"]
+
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
