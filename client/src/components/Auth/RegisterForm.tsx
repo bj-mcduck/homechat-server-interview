@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from 'urql';
+import { useNavigate } from 'react-router-dom';
 import { Button, TextInput, Paper, Title, Stack, Alert } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -8,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export const RegisterForm = () => {
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const [, register] = useMutation(REGISTER_MUTATION);
   const { setAuth } = useAuth();
@@ -59,6 +61,7 @@ export const RegisterForm = () => {
           message: 'Welcome to Chat App!',
           color: 'green',
         });
+        navigate('/chat');
       }
     } catch (err) {
       console.error('Registration error:', err);

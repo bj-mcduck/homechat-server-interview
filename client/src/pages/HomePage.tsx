@@ -1,37 +1,52 @@
 import { Navigate } from 'react-router-dom';
+import { Button, Paper, Title, Stack, Text } from '@mantine/core';
 import { useAuth } from '../hooks/useAuth';
 
 export const HomePage = () => {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
 
-  if (isAuthenticated) {
+  if (user) {
     return <Navigate to="/chat" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-4">
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#f8f9fa', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      padding: '3rem 1rem'
+    }}>
+      <Paper shadow="sm" p="xl" style={{ maxWidth: 500, textAlign: 'center' }}>
+        <Title order={1} mb="md">
           Welcome to Chat App
-        </h1>
-        <p className="text-gray-600 mb-8">
-          Connect and chat with your friends and colleagues
-        </p>
-        <div className="space-y-4">
-          <a
+        </Title>
+        <Text size="lg" c="dimmed" mb="xl">
+          Connect with your team and friends through real-time messaging
+        </Text>
+        
+        <Stack gap="md">
+          <Button 
+            size="lg" 
+            fullWidth
+            component="a"
             href="/register"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Get Started
-          </a>
-          <a
+          </Button>
+          <Button 
+            variant="outline" 
+            size="lg" 
+            fullWidth
+            component="a"
             href="/signin"
-            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Sign In
-          </a>
-        </div>
-      </div>
+          </Button>
+        </Stack>
+      </Paper>
     </div>
   );
 };

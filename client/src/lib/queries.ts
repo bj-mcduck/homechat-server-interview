@@ -28,6 +28,22 @@ export const USER_CHATS_QUERY = gql`
   }
 `;
 
+export const PUBLIC_CHATS_QUERY = gql`
+  query PublicChats {
+    publicChats {
+      id
+      name
+      private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;
+
 export const MESSAGES_QUERY = gql`
   query Messages($chatId: String!) {
     messages(chatId: $chatId) {

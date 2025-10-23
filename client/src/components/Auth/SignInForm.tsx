@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from 'urql';
+import { useNavigate } from 'react-router-dom';
 import { Button, TextInput, Paper, Title, Stack, Alert } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -8,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export const SignInForm = () => {
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const [, signIn] = useMutation(SIGN_IN_MUTATION);
   const { setAuth } = useAuth();
@@ -51,6 +53,7 @@ export const SignInForm = () => {
           message: 'Successfully signed in',
           color: 'green',
         });
+        navigate('/chat');
       }
     } catch (err) {
       console.error('Sign in error:', err);

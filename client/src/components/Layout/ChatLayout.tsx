@@ -8,11 +8,11 @@ interface ChatLayoutProps {
 
 export const ChatLayout = ({ children }: ChatLayoutProps) => {
   return (
-    <div className="h-screen flex flex-col">
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <div className="flex-1 flex overflow-hidden">
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <Sidebar />
-        <main className="flex-1 overflow-hidden">
+        <main style={{ flex: 1, overflow: 'hidden' }}>
           {children}
         </main>
       </div>
