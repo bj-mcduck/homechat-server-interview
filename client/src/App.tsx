@@ -1,35 +1,62 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Provider } from 'urql';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { client } from './lib/graphql-client';
+import { AuthProvider } from './hooks/useAuth';
+import { AuthGuard } from './components/Auth/AuthGuard';
+import { ChatLayout } from './components/Layout/ChatLayout';
+import { HomePage } from './pages/HomePage';
+import { Register } from './pages/Register';
+import { SignIn } from './pages/SignIn';
+import { ChatPage } from './pages/ChatPage';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <QueryClientProvider client={queryClient}>
+      <Provider value={client}>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/signin" element={<SignIn />} />
+              <Route
+                path="/chat"
+                element={
+                  <AuthGuard>
+                    <ChatLayout>
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="text-gray-500">Select a chat to start messaging</div>
+                      </div>
+                    </ChatLayout>
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/chat/:chatId"
+                element={
+                  <AuthGuard>
+                    <ChatLayout>
+                      <ChatPage />
+                    </ChatLayout>
+                  </AuthGuard>
+                }
+              />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </Provider>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;
