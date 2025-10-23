@@ -105,13 +105,13 @@ defmodule ServerWeb.Schemas.ChatSchema do
           {nil, _} -> {:error, "Chat not found"}
           {_, nil} -> {:error, "User not found"}
           {chat_id, user_id} ->
-            case Chats.add_chat_member(chat_id, user_id) do
+            case Chats.add_chat_members(chat_id, [user_id]) do
               {:ok, _} ->
                 case Chats.get_chat_with_members(chat_nanoid) do
                   nil -> {:error, "Chat not found"}
                   chat -> {:ok, chat}
                 end
-              {:error, changeset} -> {:error, "Failed to add member: #{inspect(changeset.errors)}"}
+              {:error, _} -> {:error, "Failed to add member"}
             end
         end
       end)

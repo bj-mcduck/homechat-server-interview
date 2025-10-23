@@ -8,12 +8,12 @@ defmodule Server.Chats do
   alias Server.Models.{ChatModel, ChatMemberModel}
 
   @doc """
-  Returns the list of chats for a user.
+  Returns the list of active chats for a user.
   """
   def list_user_chats(user_id) do
     from(c in ChatModel,
       join: cm in ChatMemberModel, on: c.id == cm.chat_id,
-      where: cm.user_id == ^user_id,
+      where: cm.user_id == ^user_id and c.state == :active,
       order_by: [desc: c.updated_at],
       preload: [:members, :messages]
     )
@@ -96,44 +96,52 @@ defmodule Server.Chats do
   end
 
   @doc """
+  Creates a chat with the given attributes, creator, and participants.
+  Handles both named and unnamed chats with appropriate deduplication logic.
+  """
+  def create_chat(attrs, creator_id, participant_ids \\ []) do
+    case attrs[:name] do
+      nil ->
+        # Unnamed chat - check for existing chat with same participants
+        case get_existing_chat_by_participants(creator_id, participant_ids) do
+          nil ->
+            # Create new unnamed chat
+            create_new_chat(attrs, creator_id, participant_ids)
+          existing_chat ->
+            {:ok, existing_chat}
+        end
+
+      name ->
+        # Named chat - check if name is taken
+        case get_chat_by_name(name) do
+          nil ->
+            # Name is available, create new named chat with participants
+            create_new_chat(attrs, creator_id, participant_ids)
+          _existing_chat ->
+            {:error, :name_taken}
+        end
+    end
+  end
+
+  @doc """
   Creates a direct chat between two users.
   """
-  def create_direct_chat(user1_id, user2_id) do
-    # Check if direct chat already exists
-    existing_chat = get_existing_direct_chat(user1_id, user2_id)
-    if existing_chat, do: {:ok, existing_chat}
-
-    # Create new direct chat
-    Repo.transaction(fn ->
-      with {:ok, chat} <- create_chat(%{state: :active}),
-           {:ok, _} <- add_chat_member(chat.id, user1_id, :owner),
-           {:ok, _} <- add_chat_member(chat.id, user2_id, :member) do
-        get_chat_with_members(chat.nanoid)
-      else
-        {:error, changeset} -> Repo.rollback(changeset)
-      end
-    end)
+  def create_direct_chat(creator_id, participant_id) do
+    attrs = %{state: :active}
+    create_chat(attrs, creator_id, [participant_id])
   end
 
   @doc """
   Creates a group chat.
   """
   def create_group_chat(attrs, creator_id, member_ids) do
-    Repo.transaction(fn ->
-      with {:ok, chat} <- create_chat(attrs),
-           {:ok, _} <- add_chat_member(chat.id, creator_id, :owner),
-           {:ok, _} <- add_chat_members(chat.id, member_ids, :member) do
-        get_chat_with_members(chat.nanoid)
-      else
-        {:error, changeset} -> Repo.rollback(changeset)
-      end
-    end)
+    create_chat(attrs, creator_id, member_ids)
   end
 
   @doc """
-  Creates a chat.
+  Creates a chat record.
   """
-  def create_chat(attrs \\ %{}) do
+  def create_chat_record(attrs \\ %{}) do
     %ChatModel{}
     |> ChatModel.changeset(attrs)
     |> Repo.insert()
@@ -162,18 +170,6 @@ defmodule Server.Chats do
     Repo.delete(chat)
   end
 
-  @doc """
-  Adds a member to a chat.
-  """
-  def add_chat_member(chat_id, user_id, role \\ :member) do
-    %ChatMemberModel{}
-    |> ChatMemberModel.create_changeset(%{
-      chat_id: chat_id,
-      user_id: user_id,
-      role: role
-    })
-    |> Repo.insert()
-  end
 
   @doc """
   Adds multiple members to a chat.
@@ -189,8 +185,13 @@ defmodule Server.Chats do
       }
     end)
 
-    Repo.insert_all(ChatMemberModel, chat_members)
-    {:ok, chat_members}
+    case Repo.insert_all(ChatMemberModel, chat_members) do
+      {count, _} when count > 0 -> {:ok, chat_members}
+      {0, _} -> {:error, :no_members_added}
+    end
+  rescue
+    Ecto.ConstraintError -> {:error, :duplicate_member}
+    Postgrex.Error -> {:error, :duplicate_member}
   end
 
   @doc """
@@ -216,14 +217,43 @@ defmodule Server.Chats do
 
   # Private functions
 
-  defp get_existing_direct_chat(user1_id, user2_id) do
-    from(c in ChatModel,
-      join: cm1 in ChatMemberModel, on: c.id == cm1.chat_id,
-      join: cm2 in ChatMemberModel, on: c.id == cm2.chat_id,
-      where: cm1.user_id == ^user1_id and cm2.user_id == ^user2_id,
-      where: c.private == true,
+  defp get_existing_chat_by_participants(creator_id, participant_ids) do
+    all_user_ids = [creator_id | participant_ids]
+    user_count = length(all_user_ids)
+
+    from(chat in ChatModel,
+      where: chat.state == :active and is_nil(chat.name),
+      where: fragment("? = (SELECT COUNT(*) FROM chat_members WHERE chat_id = ? AND user_id = ANY(?))",
+                     ^user_count, chat.id, ^all_user_ids),
       preload: [:members]
     )
     |> Repo.one()
+  end
+
+  defp get_chat_by_name(name) do
+    from(c in ChatModel,
+      where: c.name == ^name and c.state == :active
+    )
+    |> Repo.one()
+  end
+
+  defp create_new_chat(attrs, creator_id, participant_ids) do
+    Repo.transaction(fn ->
+      with {:ok, chat} <- create_chat_record(attrs),
+           {:ok, _} <- add_chat_members(chat.id, [creator_id], :owner),
+           {:ok, _} <- add_participants_if_any(chat.id, participant_ids) do
+        get_chat_with_members(chat.nanoid)
+      else
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
+  end
+
+  defp add_participants_if_any(_chat_id, []) do
+    {:ok, []}
+  end
+
+  defp add_participants_if_any(chat_id, participant_ids) do
+    add_chat_members(chat_id, participant_ids, :member)
   end
 end
