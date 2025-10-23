@@ -1,11 +1,20 @@
 import { useParams } from 'react-router-dom';
-import { Text, Stack } from '@mantine/core';
+import { useQuery } from 'urql';
+import { Text, Stack, Skeleton } from '@mantine/core';
 import { MessageList } from '../components/Chat/MessageList';
 import { MessageForm } from '../components/Chat/MessageForm';
 import { ChatHeader } from '../components/Chat/ChatHeader';
+import { ChatMembersPanel } from '../components/Chat/ChatMembersPanel';
+import { CHAT_QUERY } from '../lib/queries';
 
 export const ChatPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
+
+  const [{ data: chatData, fetching: chatFetching, error }] = useQuery({
+    query: CHAT_QUERY,
+    variables: { chatId },
+    requestPolicy: 'cache-and-network',
+  });
 
   if (!chatId) {
     return (
@@ -20,11 +29,46 @@ export const ChatPage = () => {
     );
   }
 
+  // Show loading only on initial load (no data yet)
+  if (chatFetching && !chatData?.chat) {
+    return (
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <Skeleton height={24} width="60%" />
+      </div>
+    );
+  }
+
+  // Show error only if we have an error or explicitly no chat after loading
+  if (error || (!chatFetching && chatData && !chatData.chat)) {
+    return (
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <Text c="dimmed">Chat not found</Text>
+      </div>
+    );
+  }
+
+  const chat = chatData?.chat;
+
   return (
     <Stack gap={0} style={{ flex: 1, height: '100%' }}>
-      <ChatHeader chatId={chatId} />
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        <MessageList chatId={chatId} />
+      <ChatHeader chat={chat || null} />
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <MessageList chatId={chatId} />
+        </div>
+        <div style={{ width: 300, borderLeft: '1px solid #e9ecef' }}>
+          <ChatMembersPanel chat={chat || null} />
+        </div>
       </div>
       <div style={{ flexShrink: 0 }}>
         <MessageForm chatId={chatId} />

@@ -1,47 +1,69 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useSubscription } from 'urql';
+import { useNavigate } from 'react-router-dom';
 import { Paper, Title, Stack, Text, ScrollArea, Group, Avatar, ActionIcon, TextInput, Divider, Skeleton } from '@mantine/core';
 import { IconPlus, IconUser } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { ADD_CHAT_MEMBER_MUTATION } from '../../lib/mutations';
-import { USERS_QUERY, CHAT_QUERY } from '../../lib/queries';
+import { ADD_CHAT_MEMBER_MUTATION, CREATE_OR_FIND_GROUP_CHAT_MUTATION } from '../../lib/mutations';
+import { USERS_QUERY } from '../../lib/queries';
 import { CHAT_UPDATED_SUBSCRIPTION } from '../../lib/subscriptions';
 
-interface ChatMembersPanelProps {
-  chatId: string;
+interface Chat {
+  id: string;
+  name: string | null;
+  displayName: string;
+  private: boolean;
+  members: Array<{
+    id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  }>;
 }
 
-export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
+interface ChatMembersPanelProps {
+  chat: Chat | null;
+}
+
+export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
+  if (!chat) {
+    return (
+      <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
+        <Skeleton height={24} />
+        <Skeleton height={200} mt="md" />
+      </Paper>
+    );
+  }
+
   const [searchTerm, setSearchTerm] = useState('');
   const [addingMember, setAddingMember] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const [, addChatMember] = useMutation(ADD_CHAT_MEMBER_MUTATION);
+  const [, createOrFindGroupChat] = useMutation(CREATE_OR_FIND_GROUP_CHAT_MUTATION);
   const [{ data: usersData, fetching: usersFetching }] = useQuery({
     query: USERS_QUERY,
     variables: { excludeSelf: true },
   });
-  const [{ data: chatData, fetching: chatFetching }] = useQuery({
-    query: CHAT_QUERY,
-    variables: { chatId },
-    requestPolicy: 'cache-and-network',
-  });
 
-  // Subscribe to chat updates for real-time member changes
+  // Subscribe to chat updates - only subscribe if we have a chat ID
+  const shouldSubscribe = !!chat?.id;
   const [{ data: subscriptionData }] = useSubscription({
     query: CHAT_UPDATED_SUBSCRIPTION,
-    variables: { chatId },
+    variables: { chatId: chat?.id || '' },
+    pause: !shouldSubscribe,
   });
 
-  // Use subscription data if available, otherwise fall back to query data
-  const currentMembers = subscriptionData?.chatUpdated?.members || chatData?.chat?.members || [];
+  // Use chat prop as primary source, update with subscription data
+  const currentMembers = subscriptionData?.chatUpdated?.members || chat.members;
   const users = usersData?.users || [];
 
   // Debug logging to see what's happening
   useEffect(() => {
     console.log('ChatMembersPanel - Subscription data:', subscriptionData);
-    console.log('ChatMembersPanel - Chat data:', chatData);
+    console.log('ChatMembersPanel - Chat prop:', chat);
     console.log('ChatMembersPanel - Current members:', currentMembers);
-  }, [subscriptionData, chatData, currentMembers]);
+  }, [subscriptionData, chat, currentMembers]);
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm.trim()) return users;
@@ -64,29 +86,62 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
     setAddingMember(userId);
     
     try {
-      console.log('Adding member to chat:', { chatId, userId });
-      const result = await addChatMember({ chatId, userId });
+      // Check if this is a direct message (no name, 2 members)
+      const isDirectMessage = !chat.name && chat.members.length === 2;
       
-      console.log('Add member result:', result);
-      
-      if (result.error) {
-        console.error('Add member error:', result.error);
-        notifications.show({
-          title: 'Failed to Add Member',
-          message: result.error.message,
-          color: 'red',
-        });
-        return;
-      }
-      
-      if (result.data?.addChatMember) {
-        console.log('Member added successfully');
-        notifications.show({
-          title: 'Member Added',
-          message: `${userName} has been added to the chat`,
-          color: 'green',
-        });
-        setSearchTerm('');
+      if (isDirectMessage) {
+        // Converting DM to group - get all member IDs + new user
+        const allMemberIds = chat.members.map(m => m.id);
+        const participantIds = [...allMemberIds, userId];
+        
+        console.log('Converting DM to group with participants:', participantIds);
+        const result = await createOrFindGroupChat({ participantIds });
+        
+        if (result.error) {
+          console.error('Group chat creation error:', result.error);
+          notifications.show({
+            title: 'Failed to Create Group Chat',
+            message: result.error.message,
+            color: 'red',
+          });
+          return;
+        }
+        
+        if (result.data?.createOrFindGroupChat) {
+          console.log('Group chat created/found successfully:', result.data.createOrFindGroupChat);
+          notifications.show({
+            title: 'Group Chat Created',
+            message: 'Created group chat with selected members',
+            color: 'green',
+          });
+          navigate(`/chat/${result.data.createOrFindGroupChat.id}`);
+        }
+      } else {
+        // Regular group - just add member
+        console.log('Adding member to chat:', { chatId: chat.id, userId });
+        const result = await addChatMember({ chatId: chat.id, userId });
+        
+        console.log('Add member result:', result);
+        
+        if (result.error) {
+          console.error('Add member error:', result.error);
+          notifications.show({
+            title: 'Failed to Add Member',
+            message: result.error.message,
+            color: 'red',
+          });
+          return;
+        }
+        
+        if (result.data?.addChatMember) {
+          console.log('Member added successfully');
+          notifications.show({
+            title: 'Member Added',
+            message: `${userName} has been added to the chat`,
+            color: 'green',
+          });
+          setSearchTerm('');
+        }
       }
     } catch (err) {
       console.error('Add member error:', err);
@@ -100,18 +155,6 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
     }
   };
 
-  if (chatFetching) {
-    return (
-      <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
-        <Stack gap="md">
-          <Skeleton height={24} width="60%" />
-          <Skeleton height={16} width="80%" />
-          <Skeleton height={16} width="70%" />
-          <Skeleton height={16} width="90%" />
-        </Stack>
-      </Paper>
-    );
-  }
 
   return (
     <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>

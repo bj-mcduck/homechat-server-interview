@@ -91,3 +91,20 @@ export const SEND_MESSAGE_MUTATION = gql`
     }
   }
 `;
+
+export const CREATE_OR_FIND_GROUP_CHAT_MUTATION = gql`
+  mutation CreateOrFindGroupChat($participantIds: [String!]!) {
+    createOrFindGroupChat(participantIds: $participantIds) {
+      id
+      name
+      displayName
+      private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;

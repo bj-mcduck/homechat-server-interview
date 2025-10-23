@@ -139,6 +139,17 @@ defmodule Server.Chats do
   end
 
   @doc """
+  Creates or finds an unnamed group chat with the given participants.
+  If a chat already exists with these exact participants, returns it.
+  Otherwise creates a new unnamed group chat.
+  """
+  def create_or_find_group_chat(creator_id, participant_ids) do
+    # Create unnamed group with these participants
+    # If it already exists, get_existing_chat_by_participants will find it
+    create_chat(%{state: :active}, creator_id, participant_ids)
+  end
+
+  @doc """
   Creates a chat record.
   """
   def create_chat_record(attrs \\ %{}) do

@@ -30,10 +30,11 @@ export const MessageList = ({ chatId }: MessageListProps) => {
     requestPolicy: 'cache-and-network',
   });
 
-  // Subscribe to new messages
+  // Subscribe to new messages (only if chatId exists)
   const [{ data: subscriptionData }] = useSubscription({
     query: MESSAGE_SENT_SUBSCRIPTION,
     variables: { chatId },
+    pause: !chatId, // Pause subscription if chatId is not available
   });
 
   // Combine initial messages with subscription updates

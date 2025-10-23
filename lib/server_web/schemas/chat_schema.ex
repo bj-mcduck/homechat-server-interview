@@ -168,6 +168,22 @@ defmodule ServerWeb.Schemas.ChatSchema do
         end
       end)
     end
+
+    field :create_or_find_group_chat, :chat do
+      arg :participant_ids, non_null(list_of(:string))
+      middleware(Authenticate)
+      resolve(fn %{participant_ids: participant_nanoids}, %{context: %{current_user: user}} ->
+        # Convert nanoids to IDs and include current user
+        participant_ids = participant_nanoids
+        |> Enum.map(&Server.Accounts.get_user_id/1)
+        |> Enum.reject(&is_nil/1)
+
+        case Chats.create_or_find_group_chat(user.id, participant_ids) do
+          {:ok, chat} -> {:ok, chat}
+          {:error, reason} -> {:error, "Failed: #{inspect(reason)}"}
+        end
+      end)
+    end
   end
 
   object :chat_subscriptions do

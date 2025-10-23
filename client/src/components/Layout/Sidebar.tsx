@@ -35,6 +35,7 @@ export const Sidebar = () => {
   const [{ data: subscriptionData }] = useSubscription({
     query: USER_CHATS_UPDATED_SUBSCRIPTION,
     variables: { userId: data?.me?.id },
+    pause: !data?.me?.id, // Pause subscription if user is not available
   });
 
   // If we receive a subscription update, it means the user was added to a new chat

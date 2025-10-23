@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
-import { ChatMembersPanel } from '../Chat/ChatMembersPanel';
 
 interface ChatLayoutProps {
   children: ReactNode;
@@ -21,9 +20,6 @@ export const ChatLayout = ({ children }: ChatLayoutProps) => {
         <main style={{ flex: 1, overflow: 'hidden' }}>
           {children}
         </main>
-        {isChatDetail && chatId && (
-          <ChatMembersPanel chatId={chatId} />
-        )}
       </div>
     </div>
   );

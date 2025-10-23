@@ -32,7 +32,8 @@ defmodule ServerWeb.Middleware.AuthorizeChatMember do
   end
 
   defp get_chat_id_from_args(args) when is_map(args) do
-    args[:chat_id] || args["chat_id"]
+    # Check for both :id and :chat_id to support different query field names
+    args[:id] || args["id"] || args[:chat_id] || args["chat_id"]
   end
 
   defp get_chat_id_from_args(_), do: nil

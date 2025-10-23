@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQuery } from 'urql';
 import { useNavigate } from 'react-router-dom';
-import { Modal, TextInput, Button, Stack, Text, ScrollArea, Group, Avatar, ActionIcon } from '@mantine/core';
-import { IconPlus, IconUser } from '@tabler/icons-react';
+import { Modal, TextInput, Button, Stack, Text, ScrollArea, Group, Avatar, ActionIcon, Checkbox } from '@mantine/core';
+import { IconPlus, IconUser, IconCheck } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { CREATE_DIRECT_CHAT_MUTATION } from '../../lib/mutations';
+import { CREATE_DIRECT_CHAT_MUTATION, CREATE_GROUP_CHAT_MUTATION } from '../../lib/mutations';
 import { USERS_QUERY } from '../../lib/queries';
 
 interface CreateDirectMessageModalProps {
@@ -15,9 +15,11 @@ interface CreateDirectMessageModalProps {
 export const CreateDirectMessageModal = ({ opened, onClose }: CreateDirectMessageModalProps) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   
   const [, createDirectChat] = useMutation(CREATE_DIRECT_CHAT_MUTATION);
+  const [, createGroupChat] = useMutation(CREATE_GROUP_CHAT_MUTATION);
   const [{ data: usersData, fetching: usersFetching }] = useQuery({
     query: USERS_QUERY,
     variables: { excludeSelf: true },
@@ -36,40 +38,88 @@ export const CreateDirectMessageModal = ({ opened, onClose }: CreateDirectMessag
     );
   }, [users, searchTerm]);
 
-  const handleCreateDirectChat = async (userId: string, userName: string) => {
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleCreateChat = async () => {
+    if (selectedUserIds.size === 0) return;
+    
     setLoading(true);
     
     try {
-      console.log('Creating direct chat with user:', userId);
-      const result = await createDirectChat({ userId });
+      const userIds = Array.from(selectedUserIds);
       
-      console.log('Direct chat creation result:', result);
-      
-      if (result.error) {
-        console.error('Direct chat creation error:', result.error);
-        notifications.show({
-          title: 'Failed to Create Direct Message',
-          message: result.error.message,
-          color: 'red',
+      if (userIds.length === 1) {
+        // Create direct chat
+        console.log('Creating direct chat with user:', userIds[0]);
+        const result = await createDirectChat({ userId: userIds[0] });
+        
+        if (result.error) {
+          console.error('Direct chat creation error:', result.error);
+          notifications.show({
+            title: 'Failed to Create Direct Message',
+            message: result.error.message,
+            color: 'red',
+          });
+          return;
+        }
+        
+        if (result.data?.createDirectChat) {
+          console.log('Direct chat created successfully:', result.data.createDirectChat);
+          notifications.show({
+            title: 'Direct Message Created',
+            message: 'Started conversation',
+            color: 'green',
+          });
+          onClose();
+          setSearchTerm('');
+          setSelectedUserIds(new Set());
+          navigate(`/chat/${result.data.createDirectChat.id}`);
+        }
+      } else {
+        // Create group chat
+        console.log('Creating group chat with users:', userIds);
+        const result = await createGroupChat({ 
+          name: `Group Chat`, 
+          participantIds: userIds 
         });
-        return;
-      }
-      
-      if (result.data?.createDirectChat) {
-        console.log('Direct chat created successfully:', result.data.createDirectChat);
-        notifications.show({
-          title: 'Direct Message Created',
-          message: `Started conversation with ${userName}`,
-          color: 'green',
-        });
-        onClose();
-        setSearchTerm('');
-        navigate(`/chat/${result.data.createDirectChat.id}`);
+        
+        if (result.error) {
+          console.error('Group chat creation error:', result.error);
+          notifications.show({
+            title: 'Failed to Create Group Chat',
+            message: result.error.message,
+            color: 'red',
+          });
+          return;
+        }
+        
+        if (result.data?.createGroupChat) {
+          console.log('Group chat created successfully:', result.data.createGroupChat);
+          notifications.show({
+            title: 'Group Chat Created',
+            message: `Created group with ${userIds.length} members`,
+            color: 'green',
+          });
+          onClose();
+          setSearchTerm('');
+          setSelectedUserIds(new Set());
+          navigate(`/chat/${result.data.createGroupChat.id}`);
+        }
       }
     } catch (err) {
-      console.error('Direct chat creation error:', err);
+      console.error('Chat creation error:', err);
       notifications.show({
-        title: 'Failed to Create Direct Message',
+        title: 'Failed to Create Chat',
         message: 'An unexpected error occurred',
         color: 'red',
       });
@@ -80,6 +130,7 @@ export const CreateDirectMessageModal = ({ opened, onClose }: CreateDirectMessag
 
   const handleClose = () => {
     setSearchTerm('');
+    setSelectedUserIds(new Set());
     onClose();
   };
 
@@ -93,7 +144,7 @@ export const CreateDirectMessageModal = ({ opened, onClose }: CreateDirectMessag
     >
       <Stack>
         <Text size="sm" c="dimmed">
-          Search for a user to start a direct message conversation.
+          Select users to create a chat. Choose one for direct message, or multiple for group chat.
         </Text>
         
         <TextInput
@@ -134,13 +185,12 @@ export const CreateDirectMessageModal = ({ opened, onClose }: CreateDirectMessag
                   </Group>
                   
                   <ActionIcon
-                    variant="filled"
-                    color="blue"
+                    variant={selectedUserIds.has(user.id) ? "filled" : "outline"}
+                    color={selectedUserIds.has(user.id) ? "green" : "blue"}
                     size="sm"
-                    loading={loading}
-                    onClick={() => handleCreateDirectChat(user.id, `${user.firstName} ${user.lastName}`)}
+                    onClick={() => toggleUserSelection(user.id)}
                   >
-                    <IconPlus size={16} />
+                    {selectedUserIds.has(user.id) ? <IconCheck size={16} /> : <IconPlus size={16} />}
                   </ActionIcon>
                 </Group>
               ))
@@ -148,10 +198,22 @@ export const CreateDirectMessageModal = ({ opened, onClose }: CreateDirectMessag
           </Stack>
         </ScrollArea>
         
-        <Group justify="flex-end" mt="md">
-          <Button variant="subtle" onClick={handleClose}>
-            Cancel
-          </Button>
+        <Group justify="space-between" mt="md">
+          <Text size="sm" c="dimmed">
+            {selectedUserIds.size > 0 ? `${selectedUserIds.size} user${selectedUserIds.size === 1 ? '' : 's'} selected` : 'No users selected'}
+          </Text>
+          <Group>
+            <Button variant="subtle" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateChat}
+              loading={loading}
+              disabled={selectedUserIds.size === 0}
+            >
+              {selectedUserIds.size === 1 ? 'Create Direct Message' : 'Create Group Chat'}
+            </Button>
+          </Group>
         </Group>
       </Stack>
     </Modal>
