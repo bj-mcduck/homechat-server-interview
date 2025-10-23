@@ -34,11 +34,11 @@ defmodule Server.AccountsTest do
   describe "get_user/1" do
     test "returns user when id exists" do
       user = Factory.insert(:user)
-      assert Accounts.get_user(user.id) == user
+      assert Accounts.get_user(user.nanoid) == user
     end
 
     test "returns nil when id does not exist" do
-      assert Accounts.get_user(999) == nil
+      assert Accounts.get_user("nonexistent_nanoid") == nil
     end
   end
 
@@ -94,33 +94,33 @@ defmodule Server.AccountsTest do
 
   describe "search_users/2" do
     test "searches users by username" do
-      user1 = Factory.insert(:user, username: "john_doe")
-      user2 = Factory.insert(:user, username: "jane_smith")
-      user3 = Factory.insert(:user, username: "bob_wilson")
+      john_doe = Factory.insert(:user, username: "john_doe", first_name: "Alice", last_name: "Smith")
+      _jane_smith = Factory.insert(:user, username: "jane_smith", first_name: "Jane", last_name: "Wilson")
+      _bob_wilson = Factory.insert(:user, username: "bob_wilson", first_name: "Bob", last_name: "Brown")
 
       results = Accounts.search_users("john")
       assert length(results) == 1
-      assert Enum.any?(results, &(&1.id == user1.id))
+      assert Enum.any?(results, &(&1.id == john_doe.id))
     end
 
     test "searches users by first name" do
-      user1 = Factory.insert(:user, first_name: "John")
-      user2 = Factory.insert(:user, first_name: "Jane")
-      user3 = Factory.insert(:user, first_name: "Bob")
+      john_user = Factory.insert(:user, first_name: "John")
+      _jane_user = Factory.insert(:user, first_name: "Jane")
+      _bob_user = Factory.insert(:user, first_name: "Bob")
 
       results = Accounts.search_users("john")
       assert length(results) == 1
-      assert Enum.any?(results, &(&1.id == user1.id))
+      assert Enum.any?(results, &(&1.id == john_user.id))
     end
 
     test "searches users by last name" do
-      user1 = Factory.insert(:user, last_name: "Doe")
-      user2 = Factory.insert(:user, last_name: "Smith")
-      user3 = Factory.insert(:user, last_name: "Wilson")
+      doe_user = Factory.insert(:user, last_name: "Doe")
+      _smith_user = Factory.insert(:user, last_name: "Smith")
+      _wilson_user = Factory.insert(:user, last_name: "Wilson")
 
       results = Accounts.search_users("doe")
       assert length(results) == 1
-      assert Enum.any?(results, &(&1.id == user1.id))
+      assert Enum.any?(results, &(&1.id == doe_user.id))
     end
 
     test "excludes current user from search results" do

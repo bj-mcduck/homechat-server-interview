@@ -2,7 +2,6 @@ defmodule Server.ChatsTest do
   use Server.DataCase, async: true
 
   alias Server.Chats
-  alias Server.Models.{ChatModel, ChatMemberModel}
   alias Server.Factory
 
   describe "create_direct_chat/2" do
@@ -18,13 +17,13 @@ defmodule Server.ChatsTest do
     end
 
     test "returns existing direct chat if it already exists" do
-      user1 = Factory.insert(:user)
-      user2 = Factory.insert(:user)
+      alice = Factory.insert(:user)
+      bob = Factory.insert(:user)
 
-      {:ok, chat1} = Chats.create_direct_chat(user1.id, user2.id)
-      {:ok, chat2} = Chats.create_direct_chat(user1.id, user2.id)
+      {:ok, first_chat} = Chats.create_direct_chat(alice.id, bob.id)
+      {:ok, second_chat} = Chats.create_direct_chat(alice.id, bob.id)
 
-      assert chat1.id == chat2.id
+      assert first_chat.id == second_chat.id
     end
 
     test "creates new direct chat if previous one was deleted" do
@@ -54,7 +53,7 @@ defmodule Server.ChatsTest do
 
     test "returns error with invalid attributes" do
       creator = Factory.insert(:user)
-      attrs = %{name: "", private: true, state: :active}
+      attrs = %{name: "Valid Name", private: true}  # Missing required :state field
 
       assert {:error, %Ecto.Changeset{}} = Chats.create_group_chat(attrs, creator.id, [])
     end
@@ -134,12 +133,14 @@ defmodule Server.ChatsTest do
     end
   end
 
-  describe "add_chat_member/3" do
+  describe "add_chat_members/3" do
     test "adds member to chat" do
       user = Factory.insert(:user)
       chat = Factory.insert(:chat)
 
-      assert {:ok, chat_member} = Chats.add_chat_member(chat.id, user.id)
+      assert {:ok, chat_members} = Chats.add_chat_members(chat.id, [user.id])
+      assert length(chat_members) == 1
+      [chat_member] = chat_members
       assert chat_member.user_id == user.id
       assert chat_member.chat_id == chat.id
       assert chat_member.role == :member
@@ -150,7 +151,7 @@ defmodule Server.ChatsTest do
       chat = Factory.insert(:chat)
       Factory.insert(:chat_member, user: user, chat: chat)
 
-      assert {:error, %Ecto.Changeset{}} = Chats.add_chat_member(chat.id, user.id)
+      assert {:error, _} = Chats.add_chat_members(chat.id, [user.id])
     end
   end
 

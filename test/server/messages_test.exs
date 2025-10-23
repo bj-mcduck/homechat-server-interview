@@ -11,7 +11,7 @@ defmodule Server.MessagesTest do
       other_user = Factory.insert(:user)
       {:ok, chat} = Chats.create_direct_chat(user.id, other_user.id)
 
-      assert {:ok, message} = Messages.send_message(chat.id, user.id, "Hello!")
+      assert {:ok, message} = Messages.send_message(chat.nanoid, user.id, "Hello!")
       assert message.content == "Hello!"
       assert message.user_id == user.id
       assert message.chat_id == chat.id
@@ -21,7 +21,7 @@ defmodule Server.MessagesTest do
       user = Factory.insert(:user)
       chat = Factory.insert(:chat)
 
-      assert {:error, :forbidden} = Messages.send_message(chat.id, user.id, "Hello!")
+      assert {:error, :forbidden} = Messages.send_message(chat.nanoid, user.id, "Hello!")
     end
   end
 
@@ -34,7 +34,7 @@ defmodule Server.MessagesTest do
       # Create some messages
       Factory.insert_list(5, :message, chat: chat, user: user)
 
-      messages = Messages.list_messages(chat.id, limit: 3, offset: 0)
+      messages = Messages.list_messages(chat.nanoid, limit: 3, offset: 0)
       assert length(messages) == 3
     end
 
@@ -43,7 +43,7 @@ defmodule Server.MessagesTest do
       other_user = Factory.insert(:user)
       {:ok, chat} = Chats.create_direct_chat(user.id, other_user.id)
 
-      messages = Messages.list_messages(chat.id)
+      messages = Messages.list_messages(chat.nanoid)
       assert messages == []
     end
   end
@@ -57,7 +57,7 @@ defmodule Server.MessagesTest do
       # Create some messages
       Factory.insert_list(5, :message, chat: chat, user: user)
 
-      messages = Messages.list_recent_messages(chat.id, 3)
+      messages = Messages.list_recent_messages(chat.nanoid, 3)
       assert length(messages) == 3
     end
   end
@@ -68,9 +68,13 @@ defmodule Server.MessagesTest do
       other_user = Factory.insert(:user)
       {:ok, chat} = Chats.create_direct_chat(user.id, other_user.id)
 
-      # Create messages
-      Factory.insert(:message, chat: chat, user: user, content: "First message")
-      last_message = Factory.insert(:message, chat: chat, user: user, content: "Last message")
+      # Create messages with explicit timestamps to ensure ordering
+      now = NaiveDateTime.utc_now()
+      Factory.insert(:message, chat: chat, user: user, content: "First message",
+                     inserted_at: now, updated_at: now)
+      last_message = Factory.insert(:message, chat: chat, user: user, content: "Last message",
+                                   inserted_at: NaiveDateTime.add(now, 1, :second),
+                                   updated_at: NaiveDateTime.add(now, 1, :second))
 
       result = Messages.get_last_message(chat.id)
       assert result.id == last_message.id

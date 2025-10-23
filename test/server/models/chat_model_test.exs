@@ -3,6 +3,7 @@ defmodule Server.Models.ChatModelTest do
 
   alias Server.Models.ChatModel
   alias Server.Factory
+  import Ecto.Changeset, only: [get_field: 2]
 
   describe "changeset/2" do
     test "valid changeset" do
@@ -40,7 +41,7 @@ defmodule Server.Models.ChatModelTest do
 
       changeset = ChatModel.direct_chat_changeset(%ChatModel{}, attrs)
       assert changeset.valid?
-      assert changeset.changes.private == true
+      assert get_field(changeset, :private) == true
     end
   end
 

@@ -14,7 +14,8 @@ defmodule Server.Factory do
       first_name: "John",
       last_name: "Doe",
       password_hash: Argon2.hash_pwd_salt("password123"),
-      state: :active
+      state: :active,
+      nanoid: "usr_#{Nanoid.generate(10)}"
     }
   end
 
@@ -22,19 +23,22 @@ defmodule Server.Factory do
     %ChatModel{
       name: sequence(:name, &"Chat #{&1}"),
       private: true,
-      state: :active
+      state: :active,
+      nanoid: "cht_#{Nanoid.generate(10)}"
     }
   end
 
   def chat_member_factory do
     %ChatMemberModel{
-      role: :member
+      role: :member,
+      nanoid: "mbr_#{Nanoid.generate(10)}"
     }
   end
 
   def message_factory do
     %MessageModel{
-      content: sequence(:content, &"Message content #{&1}")
+      content: sequence(:content, &"Message content #{&1}"),
+      nanoid: "msg_#{Nanoid.generate(10)}"
     }
   end
 
@@ -42,7 +46,8 @@ defmodule Server.Factory do
     %ChatModel{
       name: nil,
       private: true,
-      state: :active
+      state: :active,
+      nanoid: "cht_#{Nanoid.generate(10)}"
     }
   end
 
@@ -50,7 +55,8 @@ defmodule Server.Factory do
     %ChatModel{
       name: sequence(:name, &"Group Chat #{&1}"),
       private: true,
-      state: :active
+      state: :active,
+      nanoid: "cht_#{Nanoid.generate(10)}"
     }
   end
 
@@ -58,7 +64,8 @@ defmodule Server.Factory do
     %ChatModel{
       name: sequence(:name, &"Public Chat #{&1}"),
       private: false,
-      state: :active
+      state: :active,
+      nanoid: "cht_#{Nanoid.generate(10)}"
     }
   end
 
@@ -74,11 +81,11 @@ defmodule Server.Factory do
   def create_group_chat_with_members(creator, members) do
     chat = insert(:group_chat)
     insert(:chat_member, chat: chat, user: creator, role: :owner)
-    
+
     Enum.each(members, fn member ->
       insert(:chat_member, chat: chat, user: member, role: :member)
     end)
-    
+
     chat
   end
 

@@ -38,11 +38,12 @@ defmodule Server.Models.UserModelTest do
         username: "differentuser",
         first_name: "Test",
         last_name: "User",
-        state: :active
+        state: :active,
+        password: "password123"
       }
 
-      changeset = UserModel.changeset(%UserModel{}, attrs)
-      refute changeset.valid?
+      changeset = UserModel.registration_changeset(%UserModel{}, attrs)
+      assert {:error, changeset} = Repo.insert(changeset)
       assert %{email: ["has already been taken"]} = errors_on(changeset)
     end
 
@@ -53,11 +54,12 @@ defmodule Server.Models.UserModelTest do
         username: user.username,
         first_name: "Test",
         last_name: "User",
-        state: :active
+        state: :active,
+        password: "password123"
       }
 
-      changeset = UserModel.changeset(%UserModel{}, attrs)
-      refute changeset.valid?
+      changeset = UserModel.registration_changeset(%UserModel{}, attrs)
+      assert {:error, changeset} = Repo.insert(changeset)
       assert %{username: ["has already been taken"]} = errors_on(changeset)
     end
   end
