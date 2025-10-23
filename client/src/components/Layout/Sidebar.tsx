@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from 'urql';
+import { useQuery, useSubscription } from 'urql';
 import { Button, Paper, Title, Stack, Text, ScrollArea, Group, Badge, Divider, Skeleton, ActionIcon } from '@mantine/core';
 import { IconPlus, IconMessageCircle, IconUsers } from '@tabler/icons-react';
 import { DISCOVERABLE_CHATS_QUERY } from '../../lib/queries';
+import { USER_CHATS_UPDATED_SUBSCRIPTION } from '../../lib/subscriptions';
 import { CreateGroupChatModal } from '../Chat/CreateGroupChatModal';
 import { CreateDirectMessageModal } from '../Chat/CreateDirectMessageModal';
 
 interface Chat {
   id: string;
   name: string | null;
+  displayName: string;
   private: boolean;
   members: Array<{
     id: string;
@@ -26,8 +28,20 @@ export const Sidebar = () => {
   
   const [{ data, fetching }] = useQuery({ 
     query: DISCOVERABLE_CHATS_QUERY,
-    requestPolicy: 'cache-and-network'
+    requestPolicy: 'network-only' // Always fetch from network to get latest data
   });
+
+  // Listen for user chat updates (when user is added to a chat)
+  const [{ data: subscriptionData }] = useSubscription({
+    query: USER_CHATS_UPDATED_SUBSCRIPTION,
+    variables: { userId: data?.me?.id },
+  });
+
+  // If we receive a subscription update, it means the user was added to a new chat
+  // The network-only requestPolicy will ensure we get fresh data
+  if (subscriptionData?.userChatsUpdated) {
+    console.log('User chats updated via subscription:', subscriptionData.userChatsUpdated);
+  }
 
   if (fetching) {
     return (
@@ -47,15 +61,8 @@ export const Sidebar = () => {
   const directMessages = chats.filter(chat => !chat.name);
 
   const getChatDisplayName = (chat: Chat) => {
-    if (chat.name) return chat.name;
-    
-    // For direct messages, show the other participant's name
-    const otherMembers = chat.members.filter(member => member.id !== data?.me?.id);
-    if (otherMembers.length === 1) {
-      return `${otherMembers[0].firstName} ${otherMembers[0].lastName}`;
-    }
-    
-    return `Direct Message (${chat.members.length} people)`;
+    // Use server-computed display name
+    return chat.displayName;
   };
 
   return (

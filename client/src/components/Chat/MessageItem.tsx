@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { Badge, Text } from '@mantine/core';
 
 interface Message {
   id: string;
@@ -26,24 +27,40 @@ export const MessageItem = ({ message }: MessageItemProps) => {
   };
 
   return (
-    <div className="flex space-x-3">
-      <div className="flex-shrink-0">
-        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-          {message.user.firstName.charAt(0).toUpperCase()}
-        </div>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      gap: '0.25rem',
+      marginBottom: '0.75rem'
+    }}>
+      {/* Header with name and time */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.5rem'
+      }}>
+        <Badge 
+          color="blue" 
+          variant="filled"
+          style={{ fontWeight: 500 }}
+        >
+          {message.user.firstName} {message.user.lastName}
+        </Badge>
+        <Text size="xs" c="dimmed" style={{ color: '#868e96' }}>
+          {formatTime(message.insertedAt)}
+        </Text>
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center space-x-2 mb-1">
-          <span className="text-sm font-medium text-gray-900">
-            {message.user.firstName} {message.user.lastName}
-          </span>
-          <span className="text-xs text-gray-500">
-            {formatTime(message.insertedAt)}
-          </span>
-        </div>
-        <div className="text-sm text-gray-700 break-words">
-          {message.content}
-        </div>
+      
+      {/* Message content bubble */}
+      <div style={{
+        backgroundColor: '#f1f3f5',
+        padding: '0.75rem 1rem',
+        borderRadius: '12px',
+        maxWidth: '80%',
+        wordWrap: 'break-word'
+      }}>
+        <Text size="sm">{message.content}</Text>
       </div>
     </div>
   );

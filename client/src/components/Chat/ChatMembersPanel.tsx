@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useSubscription } from 'urql';
 import { Paper, Title, Stack, Text, ScrollArea, Group, Avatar, ActionIcon, TextInput, Divider, Skeleton } from '@mantine/core';
 import { IconPlus, IconUser } from '@tabler/icons-react';
@@ -36,11 +36,18 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
   const currentMembers = subscriptionData?.chatUpdated?.members || chatData?.chat?.members || [];
   const users = usersData?.users || [];
 
+  // Debug logging to see what's happening
+  useEffect(() => {
+    console.log('ChatMembersPanel - Subscription data:', subscriptionData);
+    console.log('ChatMembersPanel - Chat data:', chatData);
+    console.log('ChatMembersPanel - Current members:', currentMembers);
+  }, [subscriptionData, chatData, currentMembers]);
+
   const filteredUsers = useMemo(() => {
     if (!searchTerm.trim()) return users;
     
     const term = searchTerm.toLowerCase();
-    return users.filter(user => 
+    return users.filter((user: any) => 
       user.firstName.toLowerCase().includes(term) ||
       user.lastName.toLowerCase().includes(term) ||
       user.username.toLowerCase().includes(term)
@@ -49,8 +56,8 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
 
   // Filter out users who are already members
   const availableUsers = useMemo(() => {
-    const memberIds = new Set(currentMembers.map(member => member.id));
-    return filteredUsers.filter(user => !memberIds.has(user.id));
+    const memberIds = new Set(currentMembers.map((member: any) => member.id));
+    return filteredUsers.filter((user: any) => !memberIds.has(user.id));
   }, [filteredUsers, currentMembers]);
 
   const handleAddMember = async (userId: string, userName: string) => {
@@ -124,7 +131,7 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
                   No members yet
                 </Text>
               ) : (
-                currentMembers.map(member => (
+                currentMembers.map((member: any) => (
                   <Group key={member.id} gap="sm" p="xs">
                     <Avatar size="sm" color="blue">
                       <IconUser size={16} />
@@ -168,7 +175,7 @@ export const ChatMembersPanel = ({ chatId }: ChatMembersPanelProps) => {
                   {searchTerm ? 'No users found' : 'Search for users to add'}
                 </Text>
               ) : (
-                availableUsers.map(user => (
+                availableUsers.map((user: any) => (
                   <Group key={user.id} justify="space-between" p="xs" style={{ 
                     border: '1px solid #e9ecef', 
                     borderRadius: '6px',

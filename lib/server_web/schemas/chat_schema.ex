@@ -24,6 +24,30 @@ defmodule ServerWeb.Schemas.ChatSchema do
         {:ok, Server.Models.ChatModel.direct?(chat)}
       end)
     end
+
+    field :display_name, non_null(:string) do
+      resolve(fn chat, _args, %{context: %{current_user: current_user}} ->
+        if chat.name do
+          {:ok, chat.name}
+        else
+          # For direct messages, show other participants (excluding current user)
+          other_members = Enum.reject(chat.members, &(&1.id == current_user.id))
+
+          if Enum.empty?(other_members) do
+            {:ok, "Direct Message"}
+          else
+            names = Enum.map(other_members, &"#{&1.first_name} #{&1.last_name}")
+
+            if length(names) <= 4 do
+              {:ok, Enum.join(names, ", ")}
+            else
+              truncated_names = Enum.take(names, 4)
+              {:ok, Enum.join(truncated_names, ", ") <> ", ..."}
+            end
+          end
+        end
+      end)
+    end
   end
 
   object :chat_queries do
@@ -113,13 +137,15 @@ defmodule ServerWeb.Schemas.ChatSchema do
           {chat_id, user_id} ->
             case Chats.add_chat_members(chat_id, [user_id]) do
               {:ok, _} ->
-                case Chats.get_chat_with_members(chat_nanoid) do
-                  nil -> {:error, "Chat not found"}
-                  chat ->
-                    # Publish to subscription for real-time updates
-                    Absinthe.Subscription.publish(ServerWeb.Endpoint, chat, chat_updated: "chat:#{chat_nanoid}")
-                    {:ok, chat}
-                end
+                     case Chats.get_chat_with_members(chat_nanoid) do
+                       nil -> {:error, "Chat not found"}
+                       chat ->
+                         # Publish to subscription for real-time updates
+                         Absinthe.Subscription.publish(ServerWeb.Endpoint, chat, chat_updated: "chat:#{chat_nanoid}")
+                         # Also publish to user chats updated for the added user
+                         Absinthe.Subscription.publish(ServerWeb.Endpoint, chat, user_chats_updated: "user_chats:#{user_nanoid}")
+                         {:ok, chat}
+                     end
               {:error, _} -> {:error, "Failed to add member"}
             end
         end
@@ -149,6 +175,13 @@ defmodule ServerWeb.Schemas.ChatSchema do
       arg :chat_id, non_null(:string)
       config(fn args, _info ->
         {:ok, topic: "chat:#{args.chat_id}"}
+      end)
+    end
+
+    field :user_chats_updated, :chat do
+      arg :user_id, non_null(:string)
+      config(fn args, _info ->
+        {:ok, topic: "user_chats:#{args.user_id}"}
       end)
     end
   end

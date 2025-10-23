@@ -77,6 +77,7 @@ export const CHAT_QUERY = gql`
     chat(id: $chatId) {
       id
       name
+      displayName
       private
       members {
         id
@@ -93,6 +94,7 @@ export const DISCOVERABLE_CHATS_QUERY = gql`
     discoverableChats {
       id
       name
+      displayName
       private
       members {
         id

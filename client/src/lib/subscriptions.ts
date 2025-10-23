@@ -31,3 +31,19 @@ export const CHAT_UPDATED_SUBSCRIPTION = gql`
     }
   }
 `;
+
+export const USER_CHATS_UPDATED_SUBSCRIPTION = gql`
+  subscription UserChatsUpdated($userId: String!) {
+    userChatsUpdated(userId: $userId) {
+      id
+      name
+      private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;
