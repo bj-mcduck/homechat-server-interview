@@ -74,16 +74,22 @@ defmodule ServerWeb.Schemas.ChatSchema do
 
     field :create_group_chat, :chat do
       arg :name, non_null(:string)
-      arg :participant_ids, non_null(list_of(:string))
+      arg :participant_ids, list_of(:string)
       middleware(Authenticate)
-      resolve(fn %{name: name, participant_ids: participant_nanoids}, %{context: %{current_user: current_user}} ->
-        # Convert nanoids to IDs
-        participant_ids =
-          participant_nanoids
-          |> Enum.map(&Server.Accounts.get_user_id/1)
-          |> Enum.reject(&is_nil/1)
+      resolve(fn args, %{context: %{current_user: current_user}} ->
+        name = args.name
+        participant_nanoids = Map.get(args, :participant_ids)
+        # Convert nanoids to IDs (handle nil case)
+        participant_ids = case participant_nanoids do
+          nil -> []
+          nanoids ->
+            nanoids
+            |> Enum.map(&Server.Accounts.get_user_id/1)
+            |> Enum.reject(&is_nil/1)
+        end
 
-        if length(participant_ids) != length(participant_nanoids) do
+        # Only validate participant count if participants were provided
+        if participant_nanoids && length(participant_ids) != length(participant_nanoids) do
           {:error, "One or more users not found"}
         else
           attrs = %{name: name, private: true, state: :active}
