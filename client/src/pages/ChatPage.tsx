@@ -5,6 +5,9 @@ import { MessageList } from '../components/Chat/MessageList';
 import { MessageForm } from '../components/Chat/MessageForm';
 import { ChatHeader } from '../components/Chat/ChatHeader';
 import { ChatMembersPanel } from '../components/Chat/ChatMembersPanel';
+import { TypingIndicator } from '../components/Chat/TypingIndicator';
+import { useTypingIndicator } from '../hooks/useTypingIndicator';
+import { getPhoenixSocket } from '../lib/phoenix-socket';
 import { CHAT_QUERY } from '../lib/queries';
 
 export const ChatPage = () => {
@@ -15,6 +18,9 @@ export const ChatPage = () => {
     variables: { chatId },
     requestPolicy: 'cache-and-network',
   });
+
+  const socket = getPhoenixSocket();
+  const { typingText, startTyping, stopTyping } = useTypingIndicator(chatId, socket);
 
   if (!chatId) {
     return (
@@ -70,9 +76,15 @@ export const ChatPage = () => {
           <ChatMembersPanel chat={chat || null} />
         </div>
       </div>
-      <div style={{ flexShrink: 0 }}>
-        <MessageForm chatId={chatId} isArchived={chat?.state === 'inactive'} />
-      </div>
+            <div style={{ flexShrink: 0 }}>
+              <MessageForm 
+                chatId={chatId} 
+                isArchived={chat?.state === 'inactive'} 
+                startTyping={startTyping}
+                stopTyping={stopTyping}
+              />
+              <TypingIndicator typingText={typingText} />
+            </div>
     </Stack>
   );
 };

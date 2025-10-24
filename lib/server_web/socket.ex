@@ -6,6 +6,7 @@ defmodule ServerWeb.Socket do
 
   ## Channels
   channel "chat:*", ServerWeb.ChatChannel
+  channel "typing:*", ServerWeb.TypingChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

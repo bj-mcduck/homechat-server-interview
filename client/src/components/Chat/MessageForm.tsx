@@ -7,18 +7,23 @@ import { SEND_MESSAGE_MUTATION } from '../../lib/mutations';
 interface MessageFormProps {
   chatId: string;
   isArchived: boolean;
+  startTyping: () => void;
+  stopTyping: () => void;
 }
 
-export const MessageForm = ({ chatId, isArchived }: MessageFormProps) => {
+export const MessageForm = ({ chatId, isArchived, startTyping, stopTyping }: MessageFormProps) => {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [, sendMessage] = useMutation(SEND_MESSAGE_MUTATION);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!content.trim() || isSubmitting) return;
+    
+    // Stop typing when message is sent
+    stopTyping();
     
     setIsSubmitting(true);
     
@@ -37,6 +42,17 @@ export const MessageForm = ({ chatId, isArchived }: MessageFormProps) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    
+    // Trigger typing indicator
+    if (e.target.value.trim()) {
+      startTyping();
+    } else {
+      stopTyping();
     }
   };
 
@@ -70,7 +86,7 @@ export const MessageForm = ({ chatId, isArchived }: MessageFormProps) => {
         <Group gap="sm" align="flex-start">
           <Textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyPress}
             placeholder="Type your message..."
             autosize
