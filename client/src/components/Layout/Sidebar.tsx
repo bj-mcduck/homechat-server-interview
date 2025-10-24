@@ -7,6 +7,8 @@ import { IconPlus, IconMessageCircle, IconUsers, IconLock } from '@tabler/icons-
 import { DISCOVERABLE_CHATS_QUERY } from '../../lib/queries';
 import { USER_CHAT_UPDATES_SUBSCRIPTION } from '../../lib/subscriptions';
 import { useAuth } from '../../hooks/useAuth';
+import { usePresence } from '../../contexts/PresenceContext';
+import { PresenceIndicator } from '../UI/PresenceIndicator';
 import { CreateGroupChatModal } from '../Chat/CreateGroupChatModal';
 import { CreateDirectMessageModal } from '../Chat/CreateDirectMessageModal';
 
@@ -28,6 +30,7 @@ interface Chat {
 export const Sidebar = () => {
   const { chatId } = useParams();
   const { user: currentUser } = useAuth();
+  const { isUserOnline } = usePresence();
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isDMModalOpen, setIsDMModalOpen] = useState(false);
   
@@ -81,6 +84,14 @@ export const Sidebar = () => {
   const getChatDisplayName = (chat: Chat) => {
     // Use server-computed display name
     return chat.displayName;
+  };
+
+  // Helper function to get the other user in a direct message
+  const getOtherUser = (chat: Chat) => {
+    if (chat.members.length === 2) {
+      return chat.members.find(member => member.id !== currentUser?.id);
+    }
+    return null;
   };
 
   return (
@@ -170,24 +181,38 @@ export const Sidebar = () => {
                     No direct messages yet
                   </Text>
                 ) : (
-                  directMessages.map(chat => (
-                    <Button
-                      key={chat.id}
-                      component={Link}
-                      to={`/chat/${chat.id}`}
-                      variant={chatId === chat.id ? "filled" : "subtle"}
-                      justify="flex-start"
-                      leftSection={
-                        <Group gap="xs">
-                          {chat.private && !chat.isDirect && <IconLock size={14} color="gray" />}
-                          <IconMessageCircle size={16} />
-                        </Group>
-                      }
-                      style={{ justifyContent: 'flex-start' }}
-                    >
-                      {getChatDisplayName(chat)}
-                    </Button>
-                  ))
+                  directMessages.map(chat => {
+                    const otherUser = getOtherUser(chat);
+                    const isOtherUserOnline = otherUser ? isUserOnline(otherUser.id) : false;
+                    
+                    return (
+                      <Button
+                        key={chat.id}
+                        component={Link}
+                        to={`/chat/${chat.id}`}
+                        variant={chatId === chat.id ? "filled" : "subtle"}
+                        justify="flex-start"
+                        leftSection={
+                          <Group gap="xs">
+                            {chat.private && !chat.isDirect && <IconLock size={14} color="gray" />}
+                            <div style={{ position: 'relative' }}>
+                              <IconMessageCircle size={16} />
+                              {otherUser && (
+                                <PresenceIndicator 
+                                  isOnline={isOtherUserOnline} 
+                                  size="sm"
+                                  style={{ top: -2, right: -2 }}
+                                />
+                              )}
+                            </div>
+                          </Group>
+                        }
+                        style={{ justifyContent: 'flex-start' }}
+                      >
+                        {getChatDisplayName(chat)}
+                      </Button>
+                    );
+                  })
                 )}
               </Stack>
             </ScrollArea>

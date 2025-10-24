@@ -12,11 +12,13 @@ defmodule ServerWeb.Schemas.Schema do
   import_types(ServerWeb.Schemas.ChatSchema)
   import_types(ServerWeb.Schemas.UserSchema)
   import_types(ServerWeb.Schemas.MessageSchema)
+  import_types(ServerWeb.Schemas.PresenceSchema)
 
   query do
     import_fields(:chat_queries)
     import_fields(:user_queries)
     import_fields(:message_queries)
+    import_fields(:presence_queries)
   end
 
   mutation do
@@ -28,6 +30,7 @@ defmodule ServerWeb.Schemas.Schema do
   subscription do
     import_fields(:chat_subscriptions)
     import_fields(:message_subscriptions)
+    import_fields(:presence_subscriptions)
   end
 
   @impl Absinthe.Schema

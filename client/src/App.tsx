@@ -8,6 +8,7 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { client } from './lib/graphql-client';
 import { AuthProvider } from './hooks/useAuth';
+import { PresenceProvider } from './contexts/PresenceContext';
 import { AuthGuard } from './components/Auth/AuthGuard';
 import { ChatLayout } from './components/Layout/ChatLayout';
 import { HomePage } from './pages/HomePage';
@@ -32,7 +33,8 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <Provider value={client}>
             <AuthProvider>
-              <Router>
+              <PresenceProvider>
+                <Router>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/register" element={<Register />} />
@@ -60,7 +62,8 @@ function App() {
                     }
                   />
                 </Routes>
-              </Router>
+                </Router>
+              </PresenceProvider>
             </AuthProvider>
           </Provider>
         </QueryClientProvider>

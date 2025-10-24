@@ -85,3 +85,19 @@ export const USER_CHAT_UPDATES_SUBSCRIPTION = gql`
     }
   }
 `;
+
+export const PRESENCE_UPDATES_SUBSCRIPTION = gql`
+  subscription PresenceUpdates {
+    presenceUpdates {
+      onlineUsers {
+        userId
+        username
+        fullName
+        status
+        lastSeen
+        deviceType
+      }
+      timestamp
+    }
+  }
+`;

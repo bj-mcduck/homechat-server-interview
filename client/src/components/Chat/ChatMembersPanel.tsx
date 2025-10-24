@@ -8,6 +8,8 @@ import { ADD_CHAT_MEMBER_MUTATION, CREATE_OR_FIND_GROUP_CHAT_MUTATION, LEAVE_CHA
 import { USERS_QUERY } from '../../lib/queries';
 import { USER_CHAT_UPDATES_SUBSCRIPTION } from '../../lib/subscriptions';
 import { useAuth } from '../../hooks/useAuth';
+import { usePresence } from '../../contexts/PresenceContext';
+import { PresenceIndicator } from '../UI/PresenceIndicator';
 
 interface Chat {
   id: string;
@@ -28,6 +30,7 @@ interface ChatMembersPanelProps {
 
 export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
   const { user: currentUser } = useAuth();
+  const { isUserOnline } = usePresence();
   
   if (!chat) {
     return (
@@ -212,9 +215,15 @@ export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
                 currentMembers.map((member: any) => (
                   <Group key={member.id} justify="space-between" p="xs">
                     <Group gap="sm">
-                      <Avatar size="sm" color="blue">
-                        <IconUser size={16} />
-                      </Avatar>
+                      <div style={{ position: 'relative' }}>
+                        <Avatar size="sm" color="blue">
+                          <IconUser size={16} />
+                        </Avatar>
+                        <PresenceIndicator 
+                          isOnline={isUserOnline(member.id)} 
+                          size="sm"
+                        />
+                      </div>
                       <div>
                         <Text size="sm" fw={500}>
                           {member.firstName} {member.lastName}
