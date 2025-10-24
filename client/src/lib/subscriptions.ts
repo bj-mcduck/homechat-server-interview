@@ -1,5 +1,6 @@
 import { gql } from 'urql';
 
+// Legacy subscriptions (deprecated - use user-scoped versions below)
 export const MESSAGE_SENT_SUBSCRIPTION = gql`
   subscription MessageSent($chatId: String!) {
     messageSent(chatId: $chatId) {
@@ -37,6 +38,43 @@ export const USER_CHATS_UPDATED_SUBSCRIPTION = gql`
     userChatsUpdated(userId: $userId) {
       id
       name
+      private
+      members {
+        id
+        username
+        firstName
+        lastName
+      }
+    }
+  }
+`;
+
+// New user-scoped subscriptions for better scalability
+export const USER_MESSAGES_SUBSCRIPTION = gql`
+  subscription UserMessages($userId: String!) {
+    userMessages(userId: $userId) {
+      chatId
+      message {
+        id
+        content
+        insertedAt
+        user {
+          id
+          username
+          firstName
+          lastName
+        }
+      }
+    }
+  }
+`;
+
+export const USER_CHAT_UPDATES_SUBSCRIPTION = gql`
+  subscription UserChatUpdates($userId: String!) {
+    userChatUpdates(userId: $userId) {
+      id
+      name
+      displayName
       private
       members {
         id

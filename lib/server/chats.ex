@@ -221,6 +221,27 @@ defmodule Server.Chats do
   end
 
   @doc """
+  Removes a user from a chat (for leaving named chats).
+  Returns error if chat is unnamed (direct messages can't be left).
+  """
+  def leave_chat(chat_nanoid, user_id) do
+    case get_chat(chat_nanoid) do
+      nil ->
+        {:error, :not_found}
+      chat ->
+        # Only allow leaving named chats
+        if is_nil(chat.name) do
+          {:error, :cannot_leave_unnamed_chat}
+        else
+          case remove_chat_member(chat.id, user_id) do
+            :ok -> {:ok, chat}
+            error -> error
+          end
+        end
+    end
+  end
+
+  @doc """
   Returns an `%Ecto.Changeset{}` for tracking chat changes.
   """
   def change_chat(%ChatModel{} = chat, attrs \\ %{}) do

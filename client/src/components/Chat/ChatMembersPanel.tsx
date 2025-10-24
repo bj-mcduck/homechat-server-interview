@@ -2,11 +2,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useSubscription } from 'urql';
 import { useNavigate } from 'react-router-dom';
 import { Paper, Title, Stack, Text, ScrollArea, Group, Avatar, ActionIcon, TextInput, Divider, Skeleton } from '@mantine/core';
-import { IconPlus, IconUser } from '@tabler/icons-react';
+import { IconPlus, IconUser, IconX } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { ADD_CHAT_MEMBER_MUTATION, CREATE_OR_FIND_GROUP_CHAT_MUTATION } from '../../lib/mutations';
+import { ADD_CHAT_MEMBER_MUTATION, CREATE_OR_FIND_GROUP_CHAT_MUTATION, LEAVE_CHAT_MUTATION } from '../../lib/mutations';
 import { USERS_QUERY } from '../../lib/queries';
-import { CHAT_UPDATED_SUBSCRIPTION } from '../../lib/subscriptions';
+import { USER_CHAT_UPDATES_SUBSCRIPTION } from '../../lib/subscriptions';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Chat {
   id: string;
@@ -26,6 +27,8 @@ interface ChatMembersPanelProps {
 }
 
 export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
+  const { user: currentUser } = useAuth();
+  
   if (!chat) {
     return (
       <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
@@ -41,21 +44,30 @@ export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
   
   const [, addChatMember] = useMutation(ADD_CHAT_MEMBER_MUTATION);
   const [, createOrFindGroupChat] = useMutation(CREATE_OR_FIND_GROUP_CHAT_MUTATION);
+  const [, leaveChat] = useMutation(LEAVE_CHAT_MUTATION);
   const [{ data: usersData, fetching: usersFetching }] = useQuery({
     query: USERS_QUERY,
     variables: { excludeSelf: true },
   });
 
-  // Subscribe to chat updates - only subscribe if we have a chat ID
-  const shouldSubscribe = !!chat?.id;
+  // Subscribe to chat updates using user-scoped subscription
   const [{ data: subscriptionData }] = useSubscription({
-    query: CHAT_UPDATED_SUBSCRIPTION,
-    variables: { chatId: chat?.id || '' },
-    pause: !shouldSubscribe,
+    query: USER_CHAT_UPDATES_SUBSCRIPTION,
+    variables: { userId: currentUser?.id },
+    pause: !currentUser?.id,
   });
 
   // Use chat prop as primary source, update with subscription data
-  const currentMembers = subscriptionData?.chatUpdated?.members || chat.members;
+  // Filter subscription data for current chat
+  const currentMembers = useMemo(() => {
+    if (subscriptionData?.userChatUpdates) {
+      const updatedChat = subscriptionData.userChatUpdates;
+      if (updatedChat.id === chat.id) {
+        return updatedChat.members;
+      }
+    }
+    return chat.members;
+  }, [subscriptionData, chat]);
   const users = usersData?.users || [];
 
   // Debug logging to see what's happening
@@ -155,6 +167,29 @@ export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
     }
   };
 
+  const handleLeaveChat = async () => {
+    if (!window.confirm('Are you sure you want to leave this chat?')) {
+      return;
+    }
+    
+    const result = await leaveChat({ chatId: chat.id });
+    
+    if (result.error) {
+      notifications.show({
+        title: 'Error',
+        message: result.error.message,
+        color: 'red',
+      });
+    } else {
+      notifications.show({
+        title: 'Left Chat',
+        message: `You've left "${chat.name}"`,
+        color: 'blue',
+      });
+      // Navigate away from the chat
+      navigate('/chat');
+    }
+  };
 
   return (
     <Paper shadow="sm" style={{ height: '100%', width: 300, padding: '1rem' }}>
@@ -175,18 +210,31 @@ export const ChatMembersPanel = ({ chat }: ChatMembersPanelProps) => {
                 </Text>
               ) : (
                 currentMembers.map((member: any) => (
-                  <Group key={member.id} gap="sm" p="xs">
-                    <Avatar size="sm" color="blue">
-                      <IconUser size={16} />
-                    </Avatar>
-                    <div>
-                      <Text size="sm" fw={500}>
-                        {member.firstName} {member.lastName}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        @{member.username}
-                      </Text>
-                    </div>
+                  <Group key={member.id} justify="space-between" p="xs">
+                    <Group gap="sm">
+                      <Avatar size="sm" color="blue">
+                        <IconUser size={16} />
+                      </Avatar>
+                      <div>
+                        <Text size="sm" fw={500}>
+                          {member.firstName} {member.lastName}
+                          {member.id === currentUser?.id && ' (You)'}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          @{member.username}
+                        </Text>
+                      </div>
+                    </Group>
+                    {member.id === currentUser?.id && chat.name && (
+                      <ActionIcon
+                        color="red"
+                        variant="subtle"
+                        onClick={handleLeaveChat}
+                        title="Leave chat"
+                      >
+                        <IconX size={16} />
+                      </ActionIcon>
+                    )}
                   </Group>
                 ))
               )}

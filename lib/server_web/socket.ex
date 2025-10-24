@@ -47,6 +47,17 @@ defmodule ServerWeb.Socket do
     end
   end
 
+  # CRITICAL: This function provides Absinthe context for subscriptions
+  # Without this, subscriptions can't access the current_user context
+  def absinthe_config(_args, socket) do
+    case socket.assigns do
+      %{current_user: user} ->
+        Absinthe.Phoenix.Socket.put_options(socket, context: %{current_user: user})
+      _ ->
+        socket
+    end
+  end
+
   # Private functions
 
   defp authenticate_socket(params) do

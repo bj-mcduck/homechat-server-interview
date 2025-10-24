@@ -26,12 +26,22 @@ defmodule ServerWeb.Schemas.ChatSchema do
     end
 
     field :display_name, non_null(:string) do
-      resolve(fn chat, _args, %{context: %{current_user: current_user}} ->
+      resolve(fn chat, _args, resolution ->
+        # Extract current_user if available, otherwise nil
+        current_user = case resolution do
+          %{context: %{current_user: user}} -> user
+          _ -> nil
+        end
+
         if chat.name do
           {:ok, chat.name}
         else
-          # For direct messages, show other participants (excluding current user)
-          other_members = Enum.reject(chat.members, &(&1.id == current_user.id))
+          # For direct messages, show other participants (excluding current user if available)
+          other_members = if current_user do
+            Enum.reject(chat.members, &(&1.id == current_user.id))
+          else
+            chat.members
+          end
 
           if Enum.empty?(other_members) do
             {:ok, "Direct Message"}
@@ -89,7 +99,13 @@ defmodule ServerWeb.Schemas.ChatSchema do
           nil -> {:error, "User not found"}
           user_id ->
             case Chats.create_direct_chat(current_user.id, user_id) do
-              {:ok, chat} -> {:ok, chat}
+              {:ok, chat} ->
+                # Publish to all members using user-scoped topics
+                Enum.each(chat.members, fn member ->
+                  Absinthe.Subscription.publish(ServerWeb.Endpoint, chat,
+                    user_chat_updates: "user_chat_updates:#{member.nanoid}")
+                end)
+                {:ok, chat}
               {:error, changeset} -> {:error, "Failed to create chat: #{inspect(changeset.errors)}"}
             end
         end
@@ -118,7 +134,13 @@ defmodule ServerWeb.Schemas.ChatSchema do
         else
           attrs = %{name: name, private: true, state: :active}
           case Chats.create_group_chat(attrs, current_user.id, participant_ids) do
-            {:ok, chat} -> {:ok, chat}
+            {:ok, chat} ->
+              # Publish to all members using user-scoped topics
+              Enum.each(chat.members, fn member ->
+                Absinthe.Subscription.publish(ServerWeb.Endpoint, chat,
+                  user_chat_updates: "user_chat_updates:#{member.nanoid}")
+              end)
+              {:ok, chat}
             {:error, changeset} -> {:error, "Failed to create group chat: #{inspect(changeset.errors)}"}
           end
         end
@@ -140,10 +162,17 @@ defmodule ServerWeb.Schemas.ChatSchema do
                      case Chats.get_chat_with_members(chat_nanoid) do
                        nil -> {:error, "Chat not found"}
                        chat ->
-                         # Publish to subscription for real-time updates
+                         # Publish to all members using user-scoped topics
+                         all_member_nanoids = [user_nanoid | Enum.map(chat.members, & &1.nanoid)]
+                         Enum.each(Enum.uniq(all_member_nanoids), fn member_nanoid ->
+                           Absinthe.Subscription.publish(ServerWeb.Endpoint, chat,
+                             user_chat_updates: "user_chat_updates:#{member_nanoid}")
+                         end)
+
+                         # Also publish to legacy topics for backward compatibility
                          Absinthe.Subscription.publish(ServerWeb.Endpoint, chat, chat_updated: "chat:#{chat_nanoid}")
-                         # Also publish to user chats updated for the added user
                          Absinthe.Subscription.publish(ServerWeb.Endpoint, chat, user_chats_updated: "user_chats:#{user_nanoid}")
+
                          {:ok, chat}
                      end
               {:error, _} -> {:error, "Failed to add member"}
@@ -162,7 +191,18 @@ defmodule ServerWeb.Schemas.ChatSchema do
           nil -> {:error, "Chat not found"}
           chat ->
             case Chats.update_chat_privacy(chat, private) do
-              {:ok, updated_chat} -> {:ok, updated_chat}
+              {:ok, _updated_chat} ->
+                # Get chat with members for publishing
+                case Chats.get_chat_with_members(chat_nanoid) do
+                  nil -> {:error, "Chat not found"}
+                  chat_with_members ->
+                    # Publish to all current members
+                    Enum.each(chat_with_members.members, fn member ->
+                      Absinthe.Subscription.publish(ServerWeb.Endpoint, chat_with_members,
+                        user_chat_updates: "user_chat_updates:#{member.nanoid}")
+                    end)
+                    {:ok, chat_with_members}
+                end
               {:error, changeset} -> {:error, "Failed to update privacy: #{inspect(changeset.errors)}"}
             end
         end
@@ -179,14 +219,49 @@ defmodule ServerWeb.Schemas.ChatSchema do
         |> Enum.reject(&is_nil/1)
 
         case Chats.create_or_find_group_chat(user.id, participant_ids) do
-          {:ok, chat} -> {:ok, chat}
+          {:ok, chat} ->
+            # Publish to all members using user-scoped topics
+            # Note: This publishes even if chat already exists, which is fine
+            # as it ensures all members have latest data
+            Enum.each(chat.members, fn member ->
+              Absinthe.Subscription.publish(ServerWeb.Endpoint, chat,
+                user_chat_updates: "user_chat_updates:#{member.nanoid}")
+            end)
+            {:ok, chat}
           {:error, reason} -> {:error, "Failed: #{inspect(reason)}"}
+        end
+      end)
+    end
+
+    field :leave_chat, :chat do
+      arg :chat_id, non_null(:string)
+      middleware(Authenticate)
+      middleware(AuthorizeChatMember)
+      resolve(fn %{chat_id: chat_nanoid}, %{context: %{current_user: user}} ->
+        case Chats.leave_chat(chat_nanoid, user.id) do
+          {:ok, chat} ->
+            # Get updated chat with remaining members
+            case Chats.get_chat_with_members(chat_nanoid) do
+              nil -> {:ok, chat} # Chat might be deleted if no members left
+              updated_chat ->
+                # Publish to remaining members
+                Enum.each(updated_chat.members, fn member ->
+                  Absinthe.Subscription.publish(ServerWeb.Endpoint, updated_chat,
+                    user_chat_updates: "user_chat_updates:#{member.nanoid}")
+                end)
+                {:ok, updated_chat}
+            end
+          {:error, :cannot_leave_unnamed_chat} ->
+            {:error, "Cannot leave direct message chats"}
+          {:error, :not_found} ->
+            {:error, "Chat not found or you are not a member"}
         end
       end)
     end
   end
 
   object :chat_subscriptions do
+    # @deprecated - Use user_chat_updates instead for better scalability
     field :chat_updated, :chat do
       arg :chat_id, non_null(:string)
       config(fn args, _info ->
@@ -194,10 +269,19 @@ defmodule ServerWeb.Schemas.ChatSchema do
       end)
     end
 
+    # @deprecated - Use user_chat_updates instead for better scalability
     field :user_chats_updated, :chat do
       arg :user_id, non_null(:string)
       config(fn args, _info ->
         {:ok, topic: "user_chats:#{args.user_id}"}
+      end)
+    end
+
+    # New user-scoped subscription for better scalability
+    field :user_chat_updates, :chat do
+      arg :user_id, non_null(:string)
+      config(fn args, _info ->
+        {:ok, topic: "user_chat_updates:#{args.user_id}"}
       end)
     end
   end

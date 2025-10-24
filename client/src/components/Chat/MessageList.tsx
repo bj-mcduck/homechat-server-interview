@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useSubscription } from 'urql';
 import { MESSAGES_QUERY } from '../../lib/queries';
-import { MESSAGE_SENT_SUBSCRIPTION } from '../../lib/subscriptions';
+import { USER_MESSAGES_SUBSCRIPTION } from '../../lib/subscriptions';
 import { MessageItem } from './MessageItem';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Message {
   id: string;
@@ -23,6 +24,7 @@ interface MessageListProps {
 export const MessageList = ({ chatId }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const { user: currentUser } = useAuth();
   
   const [{ data, fetching, error }] = useQuery({
     query: MESSAGES_QUERY,
@@ -30,11 +32,11 @@ export const MessageList = ({ chatId }: MessageListProps) => {
     requestPolicy: 'cache-and-network',
   });
 
-  // Subscribe to new messages (only if chatId exists)
+  // Subscribe to new messages using user-scoped subscription
   const [{ data: subscriptionData }] = useSubscription({
-    query: MESSAGE_SENT_SUBSCRIPTION,
-    variables: { chatId },
-    pause: !chatId, // Pause subscription if chatId is not available
+    query: USER_MESSAGES_SUBSCRIPTION,
+    variables: { userId: currentUser?.id },
+    pause: !currentUser?.id || !chatId, // Pause if user not logged in or chatId not available
   });
 
   // Combine initial messages with subscription updates
@@ -45,16 +47,20 @@ export const MessageList = ({ chatId }: MessageListProps) => {
   }, [data?.messages]);
 
   useEffect(() => {
-    if (subscriptionData?.messageSent) {
-      const newMessage = subscriptionData.messageSent;
-      setAllMessages(prev => {
-        // Check if message already exists to avoid duplicates
-        const exists = prev.some(msg => msg.id === newMessage.id);
-        if (exists) return prev;
-        return [...prev, newMessage];
-      });
+    if (subscriptionData?.userMessages) {
+      const event = subscriptionData.userMessages;
+      // Only process messages for the current chat
+      if (event.chatId === chatId) {
+        const newMessage = event.message;
+        setAllMessages(prev => {
+          // Check if message already exists to avoid duplicates
+          const exists = prev.some(msg => msg.id === newMessage.id);
+          if (exists) return prev;
+          return [...prev, newMessage];
+        });
+      }
     }
-  }, [subscriptionData]);
+  }, [subscriptionData, chatId]);
 
   const messages = allMessages;
 

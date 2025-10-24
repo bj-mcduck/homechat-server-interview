@@ -54,9 +54,23 @@ defmodule ServerWeb.Schemas.MessageSchema do
       resolve(fn %{chat_id: chat_nanoid, content: content}, %{context: %{current_user: user}} ->
         case Messages.send_message(chat_nanoid, user.id, content) do
           {:ok, message} ->
-            # Broadcast to subscribers
-            Absinthe.Subscription.publish(ServerWeb.Endpoint, message, message_sent: "chat:#{chat_nanoid}")
-            {:ok, message}
+            # Get chat members for user-scoped publishing
+            case Server.Chats.get_chat_with_members(chat_nanoid) do
+              nil ->
+                {:error, "Chat not found"}
+              chat ->
+                # Publish to all chat members using user-scoped topics
+                Enum.each(chat.members, fn member ->
+                  event = %{chat_id: chat_nanoid, message: message}
+                  Absinthe.Subscription.publish(ServerWeb.Endpoint, event,
+                    user_messages: "user_messages:#{member.nanoid}")
+                end)
+
+                # Also publish to legacy chat topic for backward compatibility
+                Absinthe.Subscription.publish(ServerWeb.Endpoint, message, message_sent: "chat:#{chat_nanoid}")
+
+                {:ok, message}
+            end
           {:error, :forbidden} -> {:error, "Access denied"}
           {:error, :not_found} -> {:error, "Chat not found"}
           {:error, changeset} -> {:error, "Failed to send message: #{inspect(changeset.errors)}"}
@@ -65,11 +79,25 @@ defmodule ServerWeb.Schemas.MessageSchema do
     end
   end
 
+  object :user_message_event do
+    field :chat_id, non_null(:string)
+    field :message, non_null(:message)
+  end
+
   object :message_subscriptions do
+    # @deprecated - Use user_messages instead for better scalability
     field :message_sent, :message do
       arg :chat_id, non_null(:string)
       config(fn args, _info ->
         {:ok, topic: "chat:#{args.chat_id}"}
+      end)
+    end
+
+    # New user-scoped subscription for better scalability
+    field :user_messages, :user_message_event do
+      arg :user_id, non_null(:string)
+      config(fn args, _info ->
+        {:ok, topic: "user_messages:#{args.user_id}"}
       end)
     end
   end

@@ -108,3 +108,13 @@ export const CREATE_OR_FIND_GROUP_CHAT_MUTATION = gql`
     }
   }
 `;
+
+export const LEAVE_CHAT_MUTATION = gql`
+  mutation LeaveChat($chatId: String!) {
+    leaveChat(chatId: $chatId) {
+      id
+      name
+      displayName
+    }
+  }
+`;

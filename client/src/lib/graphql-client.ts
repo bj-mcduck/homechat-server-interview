@@ -14,6 +14,14 @@ const phoenixSocket = new PhoenixSocket('ws://localhost:4000/socket', {
   },
 });
 
+// Add connection status logging
+phoenixSocket.onOpen(() => console.log('✅ Phoenix Socket Connected'));
+phoenixSocket.onError((error) => console.error('❌ Phoenix Socket Error:', error));
+phoenixSocket.onClose(() => console.log('🔌 Phoenix Socket Closed'));
+
+// Connect the socket
+phoenixSocket.connect();
+
 // Create Absinthe Socket
 const absintheSocket = create(phoenixSocket);
 

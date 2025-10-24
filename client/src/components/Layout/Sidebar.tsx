@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useSubscription } from 'urql';
 import { Button, Paper, Title, Stack, Text, ScrollArea, Group, Badge, Divider, Skeleton, ActionIcon } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconPlus, IconMessageCircle, IconUsers } from '@tabler/icons-react';
 import { DISCOVERABLE_CHATS_QUERY } from '../../lib/queries';
-import { USER_CHATS_UPDATED_SUBSCRIPTION } from '../../lib/subscriptions';
+import { USER_CHAT_UPDATES_SUBSCRIPTION } from '../../lib/subscriptions';
+import { useAuth } from '../../hooks/useAuth';
 import { CreateGroupChatModal } from '../Chat/CreateGroupChatModal';
 import { CreateDirectMessageModal } from '../Chat/CreateDirectMessageModal';
 
@@ -23,26 +25,40 @@ interface Chat {
 
 export const Sidebar = () => {
   const { chatId } = useParams();
+  const { user: currentUser } = useAuth();
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isDMModalOpen, setIsDMModalOpen] = useState(false);
   
-  const [{ data, fetching }] = useQuery({ 
+  // Use reexecuteQuery to manually trigger refetch
+  const [{ data, fetching }, reexecuteQuery] = useQuery({ 
     query: DISCOVERABLE_CHATS_QUERY,
     requestPolicy: 'network-only' // Always fetch from network to get latest data
   });
 
-  // Listen for user chat updates (when user is added to a chat)
+  // Subscribe to user-scoped chat updates
   const [{ data: subscriptionData }] = useSubscription({
-    query: USER_CHATS_UPDATED_SUBSCRIPTION,
-    variables: { userId: data?.me?.id },
-    pause: !data?.me?.id, // Pause subscription if user is not available
+    query: USER_CHAT_UPDATES_SUBSCRIPTION,
+    variables: { userId: currentUser?.id },
+    pause: !currentUser?.id, // Pause subscription if user is not available
   });
 
-  // If we receive a subscription update, it means the user was added to a new chat
-  // The network-only requestPolicy will ensure we get fresh data
-  if (subscriptionData?.userChatsUpdated) {
-    console.log('User chats updated via subscription:', subscriptionData.userChatsUpdated);
-  }
+  // Refetch chat list when subscription data arrives
+  useEffect(() => {
+    if (subscriptionData?.userChatUpdates) {
+      const chat = subscriptionData.userChatUpdates;
+      
+      // Show notification toast
+      notifications.show({
+        title: 'Added to Chat',
+        message: `You've been added to "${chat.displayName || chat.name || 'a chat'}"`,
+        color: 'blue',
+        autoClose: 5000,
+      });
+      
+      // Trigger refetch to get the updated chat list
+      reexecuteQuery({ requestPolicy: 'network-only' });
+    }
+  }, [subscriptionData, reexecuteQuery]);
 
   if (fetching) {
     return (
