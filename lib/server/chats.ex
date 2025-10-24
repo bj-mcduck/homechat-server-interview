@@ -14,8 +14,7 @@ defmodule Server.Chats do
     from(c in ChatModel,
       join: cm in ChatMemberModel, on: c.id == cm.chat_id,
       where: cm.user_id == ^user_id and c.state == :active,
-      order_by: [desc: c.updated_at],
-      preload: [:members, :messages]
+      order_by: [desc: c.updated_at]
     )
     |> Repo.all()
   end
@@ -26,8 +25,7 @@ defmodule Server.Chats do
   def list_public_chats do
     from(c in ChatModel,
       where: c.private == false and c.state == :active,
-      order_by: [desc: c.updated_at],
-      preload: [:members]
+      order_by: [desc: c.updated_at]
     )
     |> Repo.all()
   end
@@ -180,7 +178,6 @@ defmodule Server.Chats do
   def delete_chat(%ChatModel{} = chat) do
     Repo.delete(chat)
   end
-
 
   @doc """
   Adds multiple members to a chat.

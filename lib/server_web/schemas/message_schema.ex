@@ -4,6 +4,8 @@ defmodule ServerWeb.Schemas.MessageSchema do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
+  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
+
   alias Server.Messages
   alias ServerWeb.Middleware.{Authenticate, AuthorizeChatMember, Authorize}
   alias Server.Chats.Policy, as: ChatPolicy
@@ -25,8 +27,8 @@ defmodule ServerWeb.Schemas.MessageSchema do
     field :content, non_null(:string)
     field :inserted_at, non_null(:string)
     field :updated_at, non_null(:string)
-    field :user, non_null(:user)
-    field :chat, non_null(:chat)
+    field :user, non_null(:user), resolve: dataloader(Server.Accounts)
+    field :chat, non_null(:chat), resolve: dataloader(Server.Chats)
   end
 
   object :message_queries do

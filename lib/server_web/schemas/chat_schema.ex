@@ -4,6 +4,8 @@ defmodule ServerWeb.Schemas.ChatSchema do
   use Absinthe.Schema.Notation
   use Absinthe.Relay.Schema.Notation, :modern
 
+  import Absinthe.Resolution.Helpers, only: [dataloader: 1]
+
   alias Server.Chats
   alias ServerWeb.Middleware.{Authenticate, Authorize}
   alias Server.Chats.Policy, as: ChatPolicy
@@ -27,7 +29,7 @@ defmodule ServerWeb.Schemas.ChatSchema do
     field :state, non_null(:string)
     field :inserted_at, non_null(:string)
     field :updated_at, non_null(:string)
-    field :members, list_of(:user)
+    field :members, list_of(:user), resolve: dataloader(Server.Chats)
     field :last_message, :message
     field :is_direct, non_null(:boolean) do
       resolve(fn chat, _args, _info ->
@@ -46,24 +48,31 @@ defmodule ServerWeb.Schemas.ChatSchema do
         if chat.name do
           {:ok, chat.name}
         else
-          # For direct messages, show other participants (excluding current user if available)
-          other_members = if current_user do
-            Enum.reject(chat.members, &(&1.id == current_user.id))
-          else
-            chat.members
-          end
+          # For direct messages, check if members are loaded
+          case Ecto.assoc_loaded?(chat.members) do
+            true ->
+              # For direct messages, show other participants (excluding current user if available)
+              other_members = if current_user do
+                Enum.reject(chat.members, &(&1.id == current_user.id))
+              else
+                chat.members
+              end
 
-          if Enum.empty?(other_members) do
-            {:ok, "Direct Message"}
-          else
-            names = Enum.map(other_members, &"#{&1.first_name} #{&1.last_name}")
+              if Enum.empty?(other_members) do
+                {:ok, "Direct Message"}
+              else
+                names = Enum.map(other_members, &"#{&1.first_name} #{&1.last_name}")
 
-            if length(names) <= 4 do
-              {:ok, Enum.join(names, ", ")}
-            else
-              truncated_names = Enum.take(names, 4)
-              {:ok, Enum.join(truncated_names, ", ") <> ", ..."}
-            end
+                if length(names) <= 4 do
+                  {:ok, Enum.join(names, ", ")}
+                else
+                  truncated_names = Enum.take(names, 4)
+                  {:ok, Enum.join(truncated_names, ", ") <> ", ..."}
+                end
+              end
+            false ->
+              # Members not loaded, return generic name
+              {:ok, "Direct Message"}
           end
         end
       end)

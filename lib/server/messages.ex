@@ -17,7 +17,6 @@ defmodule Server.Messages do
       chat_id ->
         MessageModel.paginated(MessageModel.base_query(), chat_id, opts)
         |> Repo.all()
-        |> Repo.preload([:user, :chat])
     end
   end
 
@@ -30,7 +29,6 @@ defmodule Server.Messages do
       chat_id ->
         MessageModel.recent(MessageModel.base_query(), chat_id, limit)
         |> Repo.all()
-        |> Repo.preload(:user)
     end
   end
 

@@ -32,6 +32,13 @@ defmodule ServerWeb.Schemas.Schema do
 
   @impl Absinthe.Schema
   def context(ctx) do
+    loader =
+      Dataloader.new()
+      |> Dataloader.add_source(Server.Accounts, Dataloader.Ecto.new(Server.Repo))
+      |> Dataloader.add_source(Server.Chats, Dataloader.Ecto.new(Server.Repo))
+
+    ctx = Map.put(ctx, :loader, loader)
+
     case Map.get(ctx, :current_user) do
       nil -> ctx
       user -> Map.put(ctx, :current_user, user)
