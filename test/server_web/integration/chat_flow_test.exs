@@ -483,7 +483,7 @@ defmodule ServerWeb.Integration.ChatFlowTest do
         variables: %{id: chat.nanoid}
       })
 
-      assert %{"data" => %{"chat" => chat_data}} = json_response(response, 200)
+      assert %{"data" => %{"chat" => _chat_data}} = json_response(response, 200)
 
       # Alice can send messages
       send_message_mutation = """
@@ -505,7 +505,7 @@ defmodule ServerWeb.Integration.ChatFlowTest do
         }
       })
 
-      assert %{"data" => %{"sendMessage" => message}} = json_response(response, 200)
+      assert %{"data" => %{"sendMessage" => _message}} = json_response(response, 200)
 
       # Alice can add members
       add_member_mutation = """

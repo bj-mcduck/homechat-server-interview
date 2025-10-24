@@ -5,7 +5,7 @@ defmodule ServerWeb.Schemas.ChatSchema do
   use Absinthe.Relay.Schema.Notation, :modern
 
   alias Server.Chats
-  alias ServerWeb.Middleware.{Authenticate, AuthorizeChatMember, Authorize}
+  alias ServerWeb.Middleware.{Authenticate, Authorize}
   alias Server.Chats.Policy, as: ChatPolicy
 
   # Helper function to load chat for authorization

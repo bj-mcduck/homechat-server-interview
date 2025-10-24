@@ -8,7 +8,6 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
     test "returns user's chats and public chats when authenticated" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      charlie = Factory.insert(:user, username: "charlie")
 
       # Alice's direct chat with Bob
       {:ok, alice_bob_dm} = Server.Chats.create_direct_chat(alice.id, bob.id)

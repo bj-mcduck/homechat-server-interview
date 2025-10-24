@@ -2,7 +2,6 @@ defmodule Server.Chats.PolicyTest do
   use Server.DataCase, async: true
 
   alias Server.Chats.Policy
-  alias Server.Models.{UserModel, ChatModel}
   alias Server.Factory
 
   describe "authorize/3 for :create_chat" do
