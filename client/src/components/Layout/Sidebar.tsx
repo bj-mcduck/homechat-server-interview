@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useSubscription } from 'urql';
 import { Button, Paper, Title, Stack, Text, ScrollArea, Group, Badge, Divider, Skeleton, ActionIcon } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconMessageCircle, IconUsers } from '@tabler/icons-react';
+import { IconPlus, IconMessageCircle, IconUsers, IconLock } from '@tabler/icons-react';
 import { DISCOVERABLE_CHATS_QUERY } from '../../lib/queries';
 import { USER_CHAT_UPDATES_SUBSCRIPTION } from '../../lib/subscriptions';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,6 +15,8 @@ interface Chat {
   name: string | null;
   displayName: string;
   private: boolean;
+  isDirect: boolean;
+  state: string;
   members: Array<{
     id: string;
     username: string;
@@ -122,7 +124,12 @@ export const Sidebar = () => {
                       to={`/chat/${chat.id}`}
                       variant={chatId === chat.id ? "filled" : "subtle"}
                       justify="flex-start"
-                      leftSection={<IconUsers size={16} />}
+                      leftSection={
+                        <Group gap="xs">
+                          {chat.private && !chat.isDirect && <IconLock size={14} color="gray" />}
+                          <IconUsers size={16} />
+                        </Group>
+                      }
                       style={{ justifyContent: 'flex-start' }}
                     >
                       {getChatDisplayName(chat)}
@@ -170,7 +177,12 @@ export const Sidebar = () => {
                       to={`/chat/${chat.id}`}
                       variant={chatId === chat.id ? "filled" : "subtle"}
                       justify="flex-start"
-                      leftSection={<IconMessageCircle size={16} />}
+                      leftSection={
+                        <Group gap="xs">
+                          {chat.private && !chat.isDirect && <IconLock size={14} color="gray" />}
+                          <IconMessageCircle size={16} />
+                        </Group>
+                      }
                       style={{ justifyContent: 'flex-start' }}
                     >
                       {getChatDisplayName(chat)}

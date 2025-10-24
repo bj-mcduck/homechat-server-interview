@@ -71,7 +71,7 @@ export const ChatPage = () => {
         </div>
       </div>
       <div style={{ flexShrink: 0 }}>
-        <MessageForm chatId={chatId} />
+        <MessageForm chatId={chatId} isArchived={chat?.state === 'inactive'} />
       </div>
     </Stack>
   );

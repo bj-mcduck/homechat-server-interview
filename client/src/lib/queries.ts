@@ -79,6 +79,8 @@ export const CHAT_QUERY = gql`
       name
       displayName
       private
+      state
+      isDirect
       members {
         id
         username
@@ -96,6 +98,8 @@ export const DISCOVERABLE_CHATS_QUERY = gql`
       name
       displayName
       private
+      state
+      isDirect
       members {
         id
         username

@@ -118,3 +118,32 @@ export const LEAVE_CHAT_MUTATION = gql`
     }
   }
 `;
+
+export const ARCHIVE_CHAT_MUTATION = gql`
+  mutation ArchiveChat($chatId: String!) {
+    archiveChat(chatId: $chatId) {
+      id
+      state
+    }
+  }
+`;
+
+export const CONVERT_TO_GROUP_MUTATION = gql`
+  mutation ConvertToGroup($chatId: String!, $name: String!) {
+    convertToGroup(chatId: $chatId, name: $name) {
+      id
+      name
+      displayName
+      isDirect
+    }
+  }
+`;
+
+export const UPDATE_CHAT_PRIVACY_MUTATION = gql`
+  mutation UpdateChatPrivacy($chatId: String!, $private: Boolean!) {
+    updateChatPrivacy(chatId: $chatId, private: $private) {
+      id
+      private
+    }
+  }
+`;

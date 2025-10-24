@@ -333,7 +333,7 @@ defmodule Server.Chats do
     |> Repo.all()
   end
 
-  defp refresh_chat_member_cache(chat_id) do
+  def refresh_chat_member_cache(chat_id) do
     # Get all member IDs for this chat
     member_ids = from(cm in ChatMemberModel,
       where: cm.chat_id == ^chat_id,

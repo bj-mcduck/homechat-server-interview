@@ -74,6 +74,15 @@ export const client = createClient({
           addChatMember: (_result, _args, cache, _info) => {
             cache.invalidate('Query', 'discoverableChats');
           },
+          archiveChat: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+          convertToGroup: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+          updateChatPrivacy: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
         },
       },
     }),

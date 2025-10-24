@@ -338,6 +338,94 @@ defmodule ServerWeb.Schemas.ChatSchema do
         end
       end)
     end
+
+    field :archive_chat, :chat do
+      arg(:chat_id, non_null(:string))
+      middleware(Authenticate)
+
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :update_chat,
+        resource: &load_chat_for_auth/1
+      )
+
+      resolve(fn %{chat_id: chat_nanoid}, _info ->
+        case Chats.get_chat(chat_nanoid) do
+          nil ->
+            {:error, "Chat not found"}
+
+          chat ->
+            case Chats.update_chat(chat, %{state: :inactive}) do
+              {:ok, updated_chat} ->
+                # Publish to all members using user-scoped topics
+                case Chats.get_chat_with_members(chat_nanoid) do
+                  nil ->
+                    {:ok, updated_chat}
+
+                  chat_with_members ->
+                    Enum.each(chat_with_members.members, fn member ->
+                      Absinthe.Subscription.publish(ServerWeb.Endpoint, updated_chat,
+                        user_chat_updates: "user_chat_updates:#{member.nanoid}"
+                      )
+                    end)
+
+                    {:ok, updated_chat}
+                end
+
+              {:error, _changeset} ->
+                {:error, "Failed to archive chat"}
+            end
+        end
+      end)
+    end
+
+    field :convert_to_group, :chat do
+      arg(:chat_id, non_null(:string))
+      arg(:name, non_null(:string))
+      middleware(Authenticate)
+
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :update_chat,
+        resource: &load_chat_for_auth/1
+      )
+
+      resolve(fn %{chat_id: chat_nanoid, name: name}, _info ->
+        case Chats.get_chat(chat_nanoid) do
+          nil ->
+            {:error, "Chat not found"}
+
+          chat ->
+            if chat.is_direct do
+              case Chats.update_chat(chat, %{name: name, is_direct: false}) do
+                {:ok, updated_chat} ->
+                  # Refresh member cache after conversion
+                  Chats.refresh_chat_member_cache(updated_chat.id)
+
+                  # Publish to all members using user-scoped topics
+                  case Chats.get_chat_with_members(chat_nanoid) do
+                    nil ->
+                      {:ok, updated_chat}
+
+                    chat_with_members ->
+                      Enum.each(chat_with_members.members, fn member ->
+                        Absinthe.Subscription.publish(ServerWeb.Endpoint, updated_chat,
+                          user_chat_updates: "user_chat_updates:#{member.nanoid}"
+                        )
+                      end)
+
+                      {:ok, updated_chat}
+                  end
+
+                {:error, _changeset} ->
+                  {:error, "Failed to convert chat"}
+              end
+            else
+              {:error, "Chat is already a named group"}
+            end
+        end
+      end)
+    end
   end
 
   object :chat_subscriptions do

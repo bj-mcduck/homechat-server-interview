@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useMutation } from 'urql';
-import { Paper, Group, Textarea, ActionIcon } from '@mantine/core';
+import { Paper, Group, Textarea, ActionIcon, Text } from '@mantine/core';
 import { IconSend } from '@tabler/icons-react';
 import { SEND_MESSAGE_MUTATION } from '../../lib/mutations';
 
 interface MessageFormProps {
   chatId: string;
+  isArchived: boolean;
 }
 
-export const MessageForm = ({ chatId }: MessageFormProps) => {
+export const MessageForm = ({ chatId, isArchived }: MessageFormProps) => {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -38,6 +39,23 @@ export const MessageForm = ({ chatId }: MessageFormProps) => {
       handleSubmit(e);
     }
   };
+
+  if (isArchived) {
+    return (
+      <Paper 
+        shadow="sm" 
+        style={{ 
+          padding: '1rem',
+          borderTop: '1px solid #e9ecef',
+          backgroundColor: '#f8f9fa'
+        }}
+      >
+        <Text size="sm" c="dimmed" ta="center">
+          This channel has been archived. No new messages can be sent.
+        </Text>
+      </Paper>
+    );
+  }
 
   return (
     <Paper 
