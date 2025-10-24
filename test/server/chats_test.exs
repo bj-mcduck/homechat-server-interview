@@ -181,4 +181,261 @@ defmodule Server.ChatsTest do
       assert updated_chat.private == false
     end
   end
+
+  describe "leave_chat/2" do
+    test "removes member from named chat" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      assert {:ok, updated_chat} = Chats.leave_chat(chat.nanoid, alice.id)
+      assert updated_chat.id == chat.id
+      refute Chats.user_member_of_chat?(alice.id, chat.id)
+    end
+
+    test "returns chat after successful leave" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      assert {:ok, result_chat} = Chats.leave_chat(chat.nanoid, alice.id)
+      assert result_chat.id == chat.id
+    end
+
+    test "returns error when chat is unnamed" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_direct_chat(alice.id, bob.id)
+
+      assert {:error, :cannot_leave_unnamed_chat} = Chats.leave_chat(chat.nanoid, alice.id)
+    end
+
+    test "returns not found error when chat does not exist" do
+      alice = Factory.insert(:user, username: "alice")
+
+      assert {:error, :not_found} = Chats.leave_chat("nonexistent_nanoid", alice.id)
+    end
+
+    test "returns not found error when user is not a member" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      assert {:error, :not_found} = Chats.leave_chat(chat.nanoid, charlie.id)
+    end
+  end
+
+  describe "create_or_find_group_chat/2" do
+    test "creates new unnamed group with participants" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+
+      assert {:ok, chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+      assert chat.name == nil
+      assert chat.private == true
+      assert length(chat.members) == 3
+      assert Enum.any?(chat.members, &(&1.id == alice.id))
+      assert Enum.any?(chat.members, &(&1.id == bob.id))
+      assert Enum.any?(chat.members, &(&1.id == charlie.id))
+    end
+
+    test "returns existing unnamed group with same participants" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+
+      # Create first group
+      {:ok, first_chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+
+      # Try to create same group again
+      {:ok, second_chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+
+      assert first_chat.id == second_chat.id
+    end
+
+    test "creates new group if participant set differs" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+      dave = Factory.insert(:user, username: "dave")
+
+      # Create first group
+      {:ok, first_chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+
+      # Create group with different participants
+      {:ok, second_chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, dave.id])
+
+      assert first_chat.id != second_chat.id
+    end
+
+    test "creates new group when existing group was deleted" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+
+      # Create and delete group
+      {:ok, first_chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+      Chats.delete_chat(first_chat)
+
+      # Create new group with same participants
+      {:ok, second_chat} = Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+
+      assert first_chat.id != second_chat.id
+    end
+  end
+
+  describe "when chat becomes inactive" do
+    test "excludes from discoverable chats" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_direct_chat(alice.id, bob.id)
+
+      # Initially chat is discoverable
+      discoverable_chats = Chats.list_discoverable_chats(alice.id)
+      assert Enum.any?(discoverable_chats, &(&1.id == chat.id))
+
+      # Make chat inactive
+      Chats.update_chat(chat, %{state: :inactive})
+
+      # Chat should no longer be discoverable
+      discoverable_chats = Chats.list_discoverable_chats(alice.id)
+      refute Enum.any?(discoverable_chats, &(&1.id == chat.id))
+    end
+
+    test "prevents sending messages" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_direct_chat(alice.id, bob.id)
+
+      # Make chat inactive
+      Chats.update_chat(chat, %{state: :inactive})
+
+      # Should not be able to send messages
+      assert {:error, :chat_inactive} = Server.Messages.send_message(chat.nanoid, alice.id, "Hello!")
+    end
+
+    test "still allows viewing by members" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_direct_chat(alice.id, bob.id)
+
+      # Make chat inactive
+      Chats.update_chat(chat, %{state: :inactive})
+
+      # Members should still be able to view the chat
+      assert Chats.user_member_of_chat?(alice.id, chat.id)
+      assert Chats.user_member_of_chat?(bob.id, chat.id)
+    end
+  end
+
+  describe "chat member roles" do
+    test "owner can update chat settings" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      # Alice (owner) should be able to update
+      assert :ok = Server.Chats.Policy.authorize(:update_chat, alice, chat)
+    end
+
+    test "owner can delete chat" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      # Alice (owner) should be able to delete
+      assert :ok = Server.Chats.Policy.authorize(:delete_chat, alice, chat)
+    end
+
+    test "member cannot update chat settings" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      # Bob (member) should not be able to update
+      assert {:error, :not_owner} = Server.Chats.Policy.authorize(:update_chat, bob, chat)
+    end
+
+    test "member cannot delete chat" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      {:ok, chat} = Chats.create_group_chat(
+        %{name: "Test Group", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      # Bob (member) should not be able to delete
+      assert {:error, :not_owner} = Server.Chats.Policy.authorize(:delete_chat, bob, chat)
+    end
+  end
+
+  describe "create_chat with duplicate name" do
+    test "returns error when name is taken" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+
+      # Create first chat with name
+      {:ok, _first_chat} = Chats.create_group_chat(
+        %{name: "Unique Name", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+
+      # Try to create another chat with same name
+      assert {:error, :name_taken} = Chats.create_group_chat(
+        %{name: "Unique Name", private: true, state: :active},
+        charlie.id,
+        [alice.id]
+      )
+    end
+
+    test "allows same name after original is deleted" do
+      alice = Factory.insert(:user, username: "alice")
+      bob = Factory.insert(:user, username: "bob")
+      charlie = Factory.insert(:user, username: "charlie")
+
+      # Create and delete chat
+      {:ok, first_chat} = Chats.create_group_chat(
+        %{name: "Reusable Name", private: true, state: :active},
+        alice.id,
+        [bob.id]
+      )
+      Chats.delete_chat(first_chat)
+
+      # Should be able to create new chat with same name
+      assert {:ok, _second_chat} = Chats.create_group_chat(
+        %{name: "Reusable Name", private: true, state: :active},
+        charlie.id,
+        [alice.id]
+      )
+    end
+  end
 end

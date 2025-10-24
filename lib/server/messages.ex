@@ -17,7 +17,7 @@ defmodule Server.Messages do
       chat_id ->
         MessageModel.paginated(MessageModel.base_query(), chat_id, opts)
         |> Repo.all()
-        |> Repo.preload(:user)
+        |> Repo.preload([:user, :chat])
     end
   end
 
@@ -75,7 +75,7 @@ defmodule Server.Messages do
               content: content
             }) do
               {:ok, message} ->
-                {:ok, Repo.preload(message, :user)}
+                {:ok, Repo.preload(message, [:user, :chat])}
               error ->
                 error
             end

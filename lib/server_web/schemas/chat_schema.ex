@@ -90,7 +90,11 @@ defmodule ServerWeb.Schemas.ChatSchema do
     field :chat, :chat do
       arg :id, non_null(:string)
       middleware(Authenticate)
-      middleware(AuthorizeChatMember)
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :view_chat,
+        resource: &load_chat_for_auth/1
+      )
       resolve(fn %{id: id}, _info ->
         case Chats.get_chat_with_members(id) do
           nil -> {:error, "Chat not found"}
@@ -151,7 +155,9 @@ defmodule ServerWeb.Schemas.ChatSchema do
                   user_chat_updates: "user_chat_updates:#{member.nanoid}")
               end)
               {:ok, chat}
-            {:error, changeset} -> {:error, "Failed to create group chat: #{inspect(changeset.errors)}"}
+            {:error, :name_taken} -> {:error, "Chat name is already taken"}
+            {:error, changeset} when is_struct(changeset) -> {:error, "Failed to create group chat: #{inspect(changeset.errors)}"}
+            {:error, reason} -> {:error, "Failed to create group chat: #{inspect(reason)}"}
           end
         end
       end)
@@ -228,7 +234,7 @@ defmodule ServerWeb.Schemas.ChatSchema do
     end
 
     field :create_or_find_group_chat, :chat do
-      arg :participant_ids, non_null(list_of(:string))
+      arg :participant_ids, non_null(list_of(non_null(:string)))
       middleware(Authenticate)
       resolve(fn %{participant_ids: participant_nanoids}, %{context: %{current_user: user}} ->
         # Convert nanoids to IDs and include current user

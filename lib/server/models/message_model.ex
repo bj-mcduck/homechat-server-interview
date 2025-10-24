@@ -43,8 +43,7 @@ defmodule Server.Models.MessageModel do
   """
   def for_chat(query \\ base_query(), chat_id) do
     from(m in query,
-      where: m.chat_id == ^chat_id,
-      order_by: [asc: :inserted_at]
+      where: m.chat_id == ^chat_id
     )
   end
 
@@ -57,6 +56,7 @@ defmodule Server.Models.MessageModel do
 
     query
     |> for_chat(chat_id)
+    |> order_by([m], [desc: m.inserted_at])
     |> limit(^limit)
     |> offset(^offset)
   end
