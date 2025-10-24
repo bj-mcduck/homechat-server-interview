@@ -7,7 +7,7 @@ defmodule Server.Models.ChatModel do
   import Ecto.Changeset
 
   @required [:state]
-  @optional [:name, :private]
+  @optional [:name, :private, :member_names, :is_direct]
 
   @states [:active, :inactive]
   @nanoid_prefix "cht"
@@ -17,6 +17,8 @@ defmodule Server.Models.ChatModel do
     field :name, :string
     field :private, :boolean, default: true
     field :nanoid, :string
+    field :member_names, {:array, :string}, default: []
+    field :is_direct, :boolean, default: false
 
     # Associations
     has_many :chat_members, Server.Models.ChatMemberModel, foreign_key: :chat_id
@@ -66,6 +68,7 @@ defmodule Server.Models.ChatModel do
 
   @doc """
   Check if a chat is a direct message (2 members)
+  @deprecated Use the is_direct field instead
   """
   def direct?(%__MODULE__{} = chat) do
     case Ecto.assoc_loaded?(chat.members) do

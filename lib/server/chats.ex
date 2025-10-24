@@ -211,7 +211,10 @@ defmodule Server.Chats do
       end)
 
     case Repo.insert_all(ChatMemberModel, chat_members) do
-      {count, _} when count > 0 -> {:ok, chat_members}
+      {count, _} when count > 0 ->
+        # Refresh member cache after adding members
+        refresh_chat_member_cache(chat_id)
+        {:ok, chat_members}
       {0, _} -> {:error, :no_members_added}
     end
   rescue
@@ -228,7 +231,10 @@ defmodule Server.Chats do
     )
     |> Repo.delete_all()
     |> case do
-      {1, _} -> :ok
+      {1, _} ->
+        # Refresh member cache after removing member
+        refresh_chat_member_cache(chat_id)
+        :ok
       {0, _} -> {:error, :not_found}
     end
   end
@@ -290,6 +296,16 @@ defmodule Server.Chats do
   end
 
   defp create_new_chat(attrs, creator_id, participant_ids) do
+    all_member_ids = [creator_id | participant_ids]
+    is_direct = is_nil(attrs[:name]) && length(all_member_ids) == 2
+
+    # Fetch member names
+    member_names = get_member_names(all_member_ids)
+
+    attrs = attrs
+      |> Map.put(:is_direct, is_direct)
+      |> Map.put(:member_names, Enum.take(member_names, 10))
+
     Repo.transaction(fn ->
       with {:ok, chat} <- create_chat_record(attrs),
            {:ok, _} <- add_chat_members(chat.id, [creator_id], :owner),
@@ -307,5 +323,38 @@ defmodule Server.Chats do
 
   defp add_participants_if_any(chat_id, participant_ids) do
     add_chat_members(chat_id, participant_ids, :member)
+  end
+
+  defp get_member_names(user_ids) do
+    from(u in Server.Models.UserModel,
+      where: u.id in ^user_ids,
+      select: fragment("? || ' ' || ?", u.first_name, u.last_name)
+    )
+    |> Repo.all()
+  end
+
+  defp refresh_chat_member_cache(chat_id) do
+    # Get all member IDs for this chat
+    member_ids = from(cm in ChatMemberModel,
+      where: cm.chat_id == ^chat_id,
+      select: cm.user_id
+    )
+    |> Repo.all()
+
+    # Get member names
+    member_names = get_member_names(member_ids)
+
+    # Update chat with new member names and is_direct status
+    chat = Repo.get(ChatModel, chat_id)
+    if chat do
+      is_direct = is_nil(chat.name) && length(member_ids) == 2
+
+      chat
+      |> Ecto.Changeset.change(%{
+        member_names: Enum.take(member_names, 10),
+        is_direct: is_direct
+      })
+      |> Repo.update!()
+    end
   end
 end

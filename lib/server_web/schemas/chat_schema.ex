@@ -34,52 +34,26 @@ defmodule ServerWeb.Schemas.ChatSchema do
     field :members, list_of(:user), resolve: dataloader(Server.Chats)
     field :last_message, :message
 
-    field :is_direct, non_null(:boolean) do
-      resolve(fn chat, _args, _info ->
-        {:ok, Server.Models.ChatModel.direct?(chat)}
-      end)
-    end
+    field :is_direct, non_null(:boolean)
 
     field :display_name, non_null(:string) do
       resolve(fn chat, _args, resolution ->
-        # Extract current_user if available, otherwise nil
-        current_user =
-          case resolution do
-            %{context: %{current_user: user}} -> user
-            _ -> nil
-          end
+        current_user = resolution.context[:current_user]
 
-        if chat.name do
-          {:ok, chat.name}
-        else
-          # For direct messages, check if members are loaded
-          case Ecto.assoc_loaded?(chat.members) do
-            true ->
-              # For direct messages, show other participants (excluding current user if available)
-              other_members =
-                if current_user do
-                  Enum.reject(chat.members, &(&1.id == current_user.id))
-                else
-                  chat.members
-                end
+        cond do
+          chat.name ->
+            {:ok, chat.name}
 
-              if Enum.empty?(other_members) do
-                {:ok, "Direct Message"}
-              else
-                names = Enum.map(other_members, &"#{&1.first_name} #{&1.last_name}")
+          Enum.empty?(chat.member_names) ->
+            {:ok, "Direct Message"}
 
-                if length(names) <= 4 do
-                  {:ok, Enum.join(names, ", ")}
-                else
-                  truncated_names = Enum.take(names, 4)
-                  {:ok, Enum.join(truncated_names, ", ") <> ", ..."}
-                end
-              end
+          current_user ->
+            current_user_name = "#{current_user.first_name} #{current_user.last_name}"
+            names = Enum.reject(chat.member_names, &(&1 == current_user_name))
+            {:ok, Enum.join(names, ", ")}
 
-            false ->
-              # Members not loaded, return generic name
-              {:ok, "Direct Message"}
-          end
+          true ->
+            {:ok, Enum.join(chat.member_names, ", ")}
         end
       end)
     end
