@@ -29,10 +29,10 @@ export const Sidebar = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isDMModalOpen, setIsDMModalOpen] = useState(false);
   
-  // Use reexecuteQuery to manually trigger refetch
-  const [{ data, fetching }, reexecuteQuery] = useQuery({ 
+  // Use cache-first for better performance, automatically invalidated by mutations
+  const [{ data, fetching }] = useQuery({ 
     query: DISCOVERABLE_CHATS_QUERY,
-    requestPolicy: 'network-only' // Always fetch from network to get latest data
+    requestPolicy: 'cache-first' // Use cache, automatically invalidated by mutations
   });
 
   // Subscribe to user-scoped chat updates
@@ -42,7 +42,7 @@ export const Sidebar = () => {
     pause: !currentUser?.id, // Pause subscription if user is not available
   });
 
-  // Refetch chat list when subscription data arrives
+  // Show notification when subscription data arrives
   useEffect(() => {
     if (subscriptionData?.userChatUpdates) {
       const chat = subscriptionData.userChatUpdates;
@@ -55,10 +55,9 @@ export const Sidebar = () => {
         autoClose: 5000,
       });
       
-      // Trigger refetch to get the updated chat list
-      reexecuteQuery({ requestPolicy: 'network-only' });
+      // Cache is automatically invalidated by urql, no manual refetch needed
     }
-  }, [subscriptionData, reexecuteQuery]);
+  }, [subscriptionData]);
 
   if (fetching) {
     return (

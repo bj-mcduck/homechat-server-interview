@@ -1,4 +1,5 @@
 import { createClient, fetchExchange, subscriptionExchange } from 'urql';
+import { cacheExchange } from '@urql/exchange-graphcache';
 import { Socket as PhoenixSocket } from 'phoenix';
 import { create, send, observe } from '@absinthe/socket';
 
@@ -30,40 +31,22 @@ const absintheSubscriptionExchange = subscriptionExchange({
   forwardSubscription: (operation) => {
     return {
       subscribe: (sink) => {
-        console.log('Creating subscription for operation:', operation);
-        
         // Send the subscription request
         const notifier = send(absintheSocket, {
           operation: operation.query,
           variables: operation.variables,
         });
         
-        console.log('Created notifier:', notifier);
-        
         // Observe the notifier
         const observedNotifier = observe(absintheSocket, notifier, {
-          onAbort: (error) => {
-            console.log('Subscription aborted:', error);
-            sink.error(error);
-          },
-          onError: (error) => {
-            console.error('Subscription error:', error);
-            sink.error(error);
-          },
-          onStart: (notifier) => {
-            console.log('Subscription started:', notifier);
-          },
-          onResult: (result) => {
-            console.log('Subscription result:', result);
-            sink.next(result);
-          },
+          onAbort: (error) => sink.error(error),
+          onError: (error) => sink.error(error),
+          onStart: (_notifier) => {},
+          onResult: (result) => sink.next(result),
         });
 
         return {
-          unsubscribe: () => {
-            console.log('Unsubscribing from subscription');
-            // The notifier will be automatically cleaned up by Absinthe
-          },
+          unsubscribe: () => {},
         };
       },
     };
@@ -73,12 +56,32 @@ const absintheSubscriptionExchange = subscriptionExchange({
 export const client = createClient({
   url: 'http://localhost:4000/graphql',
   exchanges: [
+    cacheExchange({
+      updates: {
+        Mutation: {
+          leaveChat: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+          createGroupChat: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+          createDirectChat: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+          createOrFindGroupChat: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+          addChatMember: (_result, _args, cache, _info) => {
+            cache.invalidate('Query', 'discoverableChats');
+          },
+        },
+      },
+    }),
     fetchExchange,
     absintheSubscriptionExchange,
   ],
   fetchOptions: () => {
     const token = getAuthToken();
-    console.log('GraphQL client fetchOptions called, token:', token ? 'present' : 'none');
     return {
       headers: {
         'Content-Type': 'application/json',

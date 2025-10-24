@@ -66,6 +66,8 @@ defmodule Server.MixProject do
       {:guardian, "~> 2.3"},
       # NanoID for public IDs
       {:nanoid, "~> 2.1"},
+      # Authorization
+      {:bodyguard, "~> 2.4"},
       # Testing
       {:ex_machina, "~> 2.8", only: :test}
     ]

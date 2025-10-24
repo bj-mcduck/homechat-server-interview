@@ -5,7 +5,17 @@ defmodule ServerWeb.Schemas.ChatSchema do
   use Absinthe.Relay.Schema.Notation, :modern
 
   alias Server.Chats
-  alias ServerWeb.Middleware.{Authenticate, AuthorizeChatMember}
+  alias ServerWeb.Middleware.{Authenticate, AuthorizeChatMember, Authorize}
+  alias Server.Chats.Policy, as: ChatPolicy
+
+  # Helper function to load chat for authorization
+  defp load_chat_for_auth(resolution) do
+    chat_nanoid = resolution.arguments[:chat_id] || resolution.arguments[:id]
+    case Chats.get_chat(chat_nanoid) do
+      nil -> nil
+      chat -> chat
+    end
+  end
 
   object :chat do
     # Expose nanoid as the public ID, hide internal integer ID
@@ -151,7 +161,11 @@ defmodule ServerWeb.Schemas.ChatSchema do
       arg :chat_id, non_null(:string)
       arg :user_id, non_null(:string)
       middleware(Authenticate)
-      middleware(AuthorizeChatMember)
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :add_member,
+        resource: &load_chat_for_auth/1
+      )
       resolve(fn %{chat_id: chat_nanoid, user_id: user_nanoid}, _info ->
         case {Chats.get_chat_id(chat_nanoid), Server.Accounts.get_user_id(user_nanoid)} do
           {nil, _} -> {:error, "Chat not found"}
@@ -185,7 +199,11 @@ defmodule ServerWeb.Schemas.ChatSchema do
       arg :chat_id, non_null(:string)
       arg :private, non_null(:boolean)
       middleware(Authenticate)
-      middleware(AuthorizeChatMember)
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :update_privacy,
+        resource: &load_chat_for_auth/1
+      )
       resolve(fn %{chat_id: chat_nanoid, private: private}, _info ->
         case Chats.get_chat(chat_nanoid) do
           nil -> {:error, "Chat not found"}
@@ -236,7 +254,11 @@ defmodule ServerWeb.Schemas.ChatSchema do
     field :leave_chat, :chat do
       arg :chat_id, non_null(:string)
       middleware(Authenticate)
-      middleware(AuthorizeChatMember)
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :leave_chat,
+        resource: &load_chat_for_auth/1
+      )
       resolve(fn %{chat_id: chat_nanoid}, %{context: %{current_user: user}} ->
         case Chats.leave_chat(chat_nanoid, user.id) do
           {:ok, chat} ->
@@ -251,10 +273,8 @@ defmodule ServerWeb.Schemas.ChatSchema do
                 end)
                 {:ok, updated_chat}
             end
-          {:error, :cannot_leave_unnamed_chat} ->
-            {:error, "Cannot leave direct message chats"}
-          {:error, :not_found} ->
-            {:error, "Chat not found or you are not a member"}
+          {:error, reason} ->
+            {:error, "Failed to leave chat: #{inspect(reason)}"}
         end
       end)
     end

@@ -5,7 +5,17 @@ defmodule ServerWeb.Schemas.MessageSchema do
   use Absinthe.Relay.Schema.Notation, :modern
 
   alias Server.Messages
-  alias ServerWeb.Middleware.{Authenticate, AuthorizeChatMember}
+  alias ServerWeb.Middleware.{Authenticate, AuthorizeChatMember, Authorize}
+  alias Server.Chats.Policy, as: ChatPolicy
+
+  # Helper function to load chat for authorization
+  defp load_chat_for_auth(resolution) do
+    chat_nanoid = resolution.arguments[:chat_id]
+    case Server.Chats.get_chat(chat_nanoid) do
+      nil -> nil
+      chat -> chat
+    end
+  end
 
   object :message do
     # Expose nanoid as the public ID, hide internal integer ID
@@ -50,8 +60,13 @@ defmodule ServerWeb.Schemas.MessageSchema do
       arg :chat_id, non_null(:string)
       arg :content, non_null(:string)
       middleware(Authenticate)
-      middleware(AuthorizeChatMember)
+      middleware(Authorize,
+        policy: ChatPolicy,
+        action: :send_message,
+        resource: &load_chat_for_auth/1
+      )
       resolve(fn %{chat_id: chat_nanoid, content: content}, %{context: %{current_user: user}} ->
+        # Authorization already checked by middleware
         case Messages.send_message(chat_nanoid, user.id, content) do
           {:ok, message} ->
             # Get chat members for user-scoped publishing

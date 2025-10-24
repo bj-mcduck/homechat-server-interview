@@ -25,6 +25,7 @@
     "@tabler/icons-react": "^3.35.0",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-devtools": "^5.90.2",
+    "@urql/exchange-graphcache": "^8.1.0",
     "date-fns": "^4.1.0",
     "graphql": "^16.11.0",
     "graphql-ws": "^6.0.6",
