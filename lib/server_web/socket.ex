@@ -53,6 +53,7 @@ defmodule ServerWeb.Socket do
     case socket.assigns do
       %{current_user: user} ->
         Absinthe.Phoenix.Socket.put_options(socket, context: %{current_user: user})
+
       _ ->
         socket
     end

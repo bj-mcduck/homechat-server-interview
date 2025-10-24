@@ -8,26 +8,33 @@ defmodule ServerWeb.Middleware.AuthorizeChatMember do
   alias Server.Chats
 
   def call(resolution, _config) do
-    case resolution.context do
-      %{current_user: %{id: user_id}} ->
-        chat_nanoid = get_chat_id_from_args(resolution.arguments)
-
-        case chat_nanoid && Chats.get_chat_id(chat_nanoid) do
-          nil ->
-            resolution
-            |> Absinthe.Resolution.put_result({:error, "Chat not found"})
-          chat_id ->
-            if Chats.user_member_of_chat?(user_id, chat_id) do
-              resolution
-            else
-              resolution
-              |> Absinthe.Resolution.put_result({:error, "Access denied"})
-            end
-        end
-
-      _ ->
+    with {:ok, user_id} <- get_user_id(resolution.context),
+         {:ok, chat_id} <- get_chat_id(resolution.arguments),
+         :ok <- validate_membership(user_id, chat_id) do
+      resolution
+    else
+      {:error, message} ->
         resolution
-        |> Absinthe.Resolution.put_result({:error, "Authentication required"})
+        |> Absinthe.Resolution.put_result({:error, message})
+    end
+  end
+
+  defp get_user_id(%{current_user: %{id: user_id}}), do: {:ok, user_id}
+  defp get_user_id(_), do: {:error, "Authentication required"}
+
+  defp get_chat_id(args) do
+    chat_nanoid = get_chat_id_from_args(args)
+    case chat_nanoid && Chats.get_chat_id(chat_nanoid) do
+      nil -> {:error, "Chat not found"}
+      chat_id -> {:ok, chat_id}
+    end
+  end
+
+  defp validate_membership(user_id, chat_id) do
+    if Chats.user_member_of_chat?(user_id, chat_id) do
+      :ok
+    else
+      {:error, "Access denied"}
     end
   end
 

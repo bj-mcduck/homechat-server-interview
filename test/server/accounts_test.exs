@@ -71,32 +71,44 @@ defmodule Server.AccountsTest do
     end
 
     test "returns error with invalid email" do
-      assert {:error, :invalid_credentials} = Accounts.authenticate_user("nonexistent@example.com", "password123")
+      assert {:error, :invalid_credentials} =
+               Accounts.authenticate_user("nonexistent@example.com", "password123")
     end
 
     test "returns error with invalid password" do
       user = Factory.insert(:user, password_hash: Argon2.hash_pwd_salt("password123"))
-      assert {:error, :invalid_credentials} = Accounts.authenticate_user(user.email, "wrongpassword")
+
+      assert {:error, :invalid_credentials} =
+               Accounts.authenticate_user(user.email, "wrongpassword")
     end
   end
 
   describe "authenticate_user_with_token/2" do
     test "returns user and token with valid credentials" do
       user = Factory.insert(:user, password_hash: Argon2.hash_pwd_salt("password123"))
-      assert {:ok, ^user, token} = Accounts.authenticate_user_with_token(user.email, "password123")
+
+      assert {:ok, ^user, token} =
+               Accounts.authenticate_user_with_token(user.email, "password123")
+
       assert is_binary(token)
     end
 
     test "returns error with invalid credentials" do
-      assert {:error, :invalid_credentials} = Accounts.authenticate_user_with_token("nonexistent@example.com", "password123")
+      assert {:error, :invalid_credentials} =
+               Accounts.authenticate_user_with_token("nonexistent@example.com", "password123")
     end
   end
 
   describe "search_users/2" do
     test "searches users by username" do
-      john_doe = Factory.insert(:user, username: "john_doe", first_name: "Alice", last_name: "Smith")
-      _jane_smith = Factory.insert(:user, username: "jane_smith", first_name: "Jane", last_name: "Wilson")
-      _bob_wilson = Factory.insert(:user, username: "bob_wilson", first_name: "Bob", last_name: "Brown")
+      john_doe =
+        Factory.insert(:user, username: "john_doe", first_name: "Alice", last_name: "Smith")
+
+      _jane_smith =
+        Factory.insert(:user, username: "jane_smith", first_name: "Jane", last_name: "Wilson")
+
+      _bob_wilson =
+        Factory.insert(:user, username: "bob_wilson", first_name: "Bob", last_name: "Brown")
 
       results = Accounts.search_users("john")
       assert length(results) == 1

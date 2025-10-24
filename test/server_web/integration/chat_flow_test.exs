@@ -8,7 +8,9 @@ defmodule ServerWeb.Integration.ChatFlowTest do
     test "user creates group, adds members, sends messages, leaves chat" do
       alice = Factory.insert(:user, username: "alice", first_name: "Alice", last_name: "Smith")
       bob = Factory.insert(:user, username: "bob", first_name: "Bob", last_name: "Johnson")
-      charlie = Factory.insert(:user, username: "charlie", first_name: "Charlie", last_name: "Brown")
+
+      charlie =
+        Factory.insert(:user, username: "charlie", first_name: "Charlie", last_name: "Brown")
 
       # Step 1: Alice creates a group chat
       {:ok, token, _} = Guardian.encode_and_sign(alice)
@@ -30,15 +32,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: create_mutation,
-        variables: %{
-          name: "Engineering Team",
-          participantIds: [bob.nanoid]
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: create_mutation,
+          variables: %{
+            name: "Engineering Team",
+            participantIds: [bob.nanoid]
+          }
+        })
 
       assert %{"data" => %{"createGroupChat" => chat}} = json_response(response, 200)
       assert chat["name"] == "Engineering Team"
@@ -60,15 +63,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: add_member_mutation,
-        variables: %{
-          chatId: chat["id"],
-          userId: charlie.nanoid
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: add_member_mutation,
+          variables: %{
+            chatId: chat["id"],
+            userId: charlie.nanoid
+          }
+        })
 
       assert %{"data" => %{"addChatMember" => updated_chat}} = json_response(response, 200)
       assert length(updated_chat["members"]) == 3
@@ -95,15 +99,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat["id"],
-          content: "Welcome to the Engineering Team chat!"
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat["id"],
+            content: "Welcome to the Engineering Team chat!"
+          }
+        })
 
       assert %{"data" => %{"sendMessage" => message}} = json_response(response, 200)
       assert message["content"] == "Welcome to the Engineering Team chat!"
@@ -112,15 +117,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       # Step 4: Bob sends a message
       {:ok, bob_token, _} = Guardian.encode_and_sign(bob)
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{bob_token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat["id"],
-          content: "Thanks Alice! Excited to be here."
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{bob_token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat["id"],
+            content: "Thanks Alice! Excited to be here."
+          }
+        })
 
       assert %{"data" => %{"sendMessage" => bob_message}} = json_response(response, 200)
       assert bob_message["content"] == "Thanks Alice! Excited to be here."
@@ -140,12 +146,13 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: leave_mutation,
-        variables: %{chatId: chat["id"]}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: leave_mutation,
+          variables: %{chatId: chat["id"]}
+        })
 
       assert %{"data" => %{"leaveChat" => final_chat}} = json_response(response, 200)
       assert length(final_chat["members"]) == 2
@@ -178,15 +185,17 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: create_dm_mutation,
-        variables: %{userId: bob.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: create_dm_mutation,
+          variables: %{userId: bob.nanoid}
+        })
 
       assert %{"data" => %{"createDirectChat" => chat}} = json_response(response, 200)
-      assert chat["name"] == nil  # Direct messages are unnamed
+      # Direct messages are unnamed
+      assert chat["name"] == nil
       assert chat["private"] == true
       assert length(chat["members"]) == 2
 
@@ -204,15 +213,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat["id"],
-          content: "Hi Bob! How are you?"
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat["id"],
+            content: "Hi Bob! How are you?"
+          }
+        })
 
       assert %{"data" => %{"sendMessage" => message}} = json_response(response, 200)
       assert message["content"] == "Hi Bob! How are you?"
@@ -220,15 +230,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       # Step 3: Bob responds
       {:ok, bob_token, _} = Guardian.encode_and_sign(bob)
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{bob_token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat["id"],
-          content: "Hi Alice! I'm doing great, thanks for asking."
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{bob_token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat["id"],
+            content: "Hi Alice! I'm doing great, thanks for asking."
+          }
+        })
 
       assert %{"data" => %{"sendMessage" => bob_message}} = json_response(response, 200)
       assert bob_message["content"] == "Hi Alice! I'm doing great, thanks for asking."
@@ -242,14 +253,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: leave_mutation,
-        variables: %{chatId: chat["id"]}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: leave_mutation,
+          variables: %{chatId: chat["id"]}
+        })
 
-      assert %{"errors" => [%{"message" => "Cannot leave direct message chats"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "Cannot leave direct message chats"}]} =
+               json_response(response, 200)
     end
 
     test "owner updates privacy, deletes chat" do
@@ -269,15 +282,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: create_mutation,
-        variables: %{
-          name: "Private Team Chat",
-          participantIds: [bob.nanoid]
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: create_mutation,
+          variables: %{
+            name: "Private Team Chat",
+            participantIds: [bob.nanoid]
+          }
+        })
 
       assert %{"data" => %{"createGroupChat" => chat}} = json_response(response, 200)
       assert chat["private"] == true
@@ -293,15 +307,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: update_privacy_mutation,
-        variables: %{
-          chatId: chat["id"],
-          private: false
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: update_privacy_mutation,
+          variables: %{
+            chatId: chat["id"],
+            private: false
+          }
+        })
 
       assert %{"data" => %{"updateChatPrivacy" => updated_chat}} = json_response(response, 200)
       assert updated_chat["private"] == false
@@ -309,17 +324,19 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       # Step 3: Bob tries to update privacy (should fail - not owner)
       {:ok, bob_token, _} = Guardian.encode_and_sign(bob)
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{bob_token}")
-      |> post("/graphql", %{
-        query: update_privacy_mutation,
-        variables: %{
-          chatId: chat["id"],
-          private: true
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{bob_token}")
+        |> post("/graphql", %{
+          query: update_privacy_mutation,
+          variables: %{
+            chatId: chat["id"],
+            private: true
+          }
+        })
 
-      assert %{"errors" => [%{"message" => "Only chat owners can perform this action"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "Only chat owners can perform this action"}]} =
+               json_response(response, 200)
     end
   end
 
@@ -342,14 +359,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{charlie_token}")
-      |> post("/graphql", %{
-        query: view_chat_query,
-        variables: %{id: chat.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{charlie_token}")
+        |> post("/graphql", %{
+          query: view_chat_query,
+          variables: %{id: chat.nanoid}
+        })
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
 
       # Charlie tries to send a message
       send_message_mutation = """
@@ -361,27 +380,31 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{charlie_token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat.nanoid,
-          content: "Hello!"
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{charlie_token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat.nanoid,
+            content: "Hello!"
+          }
+        })
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
     end
 
     test "member can view and send but not update" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Bob (member) can view the chat
       {:ok, bob_token, _} = Guardian.encode_and_sign(bob)
@@ -399,12 +422,13 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{bob_token}")
-      |> post("/graphql", %{
-        query: view_chat_query,
-        variables: %{id: chat.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{bob_token}")
+        |> post("/graphql", %{
+          query: view_chat_query,
+          variables: %{id: chat.nanoid}
+        })
 
       assert %{"data" => %{"chat" => chat_data}} = json_response(response, 200)
       assert chat_data["name"] == "Test Group"
@@ -419,15 +443,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{bob_token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat.nanoid,
-          content: "Hello from Bob!"
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{bob_token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat.nanoid,
+            content: "Hello from Bob!"
+          }
+        })
 
       assert %{"data" => %{"sendMessage" => message}} = json_response(response, 200)
       assert message["content"] == "Hello from Bob!"
@@ -441,28 +466,32 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{bob_token}")
-      |> post("/graphql", %{
-        query: update_privacy_mutation,
-        variables: %{
-          chatId: chat.nanoid,
-          private: false
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{bob_token}")
+        |> post("/graphql", %{
+          query: update_privacy_mutation,
+          variables: %{
+            chatId: chat.nanoid,
+            private: false
+          }
+        })
 
-      assert %{"errors" => [%{"message" => "Only chat owners can perform this action"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "Only chat owners can perform this action"}]} =
+               json_response(response, 200)
     end
 
     test "owner has full permissions" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
       charlie = Factory.insert(:user, username: "charlie")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
@@ -476,12 +505,13 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: view_chat_query,
-        variables: %{id: chat.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: view_chat_query,
+          variables: %{id: chat.nanoid}
+        })
 
       assert %{"data" => %{"chat" => _chat_data}} = json_response(response, 200)
 
@@ -495,15 +525,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: send_message_mutation,
-        variables: %{
-          chatId: chat.nanoid,
-          content: "Hello from Alice!"
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: send_message_mutation,
+          variables: %{
+            chatId: chat.nanoid,
+            content: "Hello from Alice!"
+          }
+        })
 
       assert %{"data" => %{"sendMessage" => _message}} = json_response(response, 200)
 
@@ -520,15 +551,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: add_member_mutation,
-        variables: %{
-          chatId: chat.nanoid,
-          userId: charlie.nanoid
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: add_member_mutation,
+          variables: %{
+            chatId: chat.nanoid,
+            userId: charlie.nanoid
+          }
+        })
 
       assert %{"data" => %{"addChatMember" => updated_chat}} = json_response(response, 200)
       assert length(updated_chat["members"]) == 3
@@ -543,15 +575,16 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: update_privacy_mutation,
-        variables: %{
-          chatId: chat.nanoid,
-          private: false
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: update_privacy_mutation,
+          variables: %{
+            chatId: chat.nanoid,
+            private: false
+          }
+        })
 
       assert %{"data" => %{"updateChatPrivacy" => updated_chat}} = json_response(response, 200)
       assert updated_chat["private"] == false
@@ -569,12 +602,13 @@ defmodule ServerWeb.Integration.ChatFlowTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: leave_mutation,
-        variables: %{chatId: chat.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: leave_mutation,
+          variables: %{chatId: chat.nanoid}
+        })
 
       assert %{"data" => %{"leaveChat" => final_chat}} = json_response(response, 200)
       refute Enum.any?(final_chat["members"], &(&1["username"] == "alice"))

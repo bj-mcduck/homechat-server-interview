@@ -53,7 +53,8 @@ defmodule Server.ChatsTest do
 
     test "returns error with invalid attributes" do
       creator = Factory.insert(:user)
-      attrs = %{name: "Valid Name", private: true}  # Missing required :state field
+      # Missing required :state field
+      attrs = %{name: "Valid Name", private: true}
 
       assert {:error, %Ecto.Changeset{}} = Chats.create_group_chat(attrs, creator.id, [])
     end
@@ -69,7 +70,13 @@ defmodule Server.ChatsTest do
 
       # Create group chat
       members = Factory.insert_list(2, :user)
-      {:ok, group_chat} = Chats.create_group_chat(%{name: "Group", private: true, state: :active}, user.id, Enum.map(members, & &1.id))
+
+      {:ok, group_chat} =
+        Chats.create_group_chat(
+          %{name: "Group", private: true, state: :active},
+          user.id,
+          Enum.map(members, & &1.id)
+        )
 
       chats = Chats.list_user_chats(user.id)
       assert length(chats) == 2
@@ -186,11 +193,13 @@ defmodule Server.ChatsTest do
     test "removes member from named chat" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:ok, updated_chat} = Chats.leave_chat(chat.nanoid, alice.id)
       assert updated_chat.id == chat.id
@@ -200,11 +209,13 @@ defmodule Server.ChatsTest do
     test "returns chat after successful leave" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:ok, result_chat} = Chats.leave_chat(chat.nanoid, alice.id)
       assert result_chat.id == chat.id
@@ -228,11 +239,13 @@ defmodule Server.ChatsTest do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
       charlie = Factory.insert(:user, username: "charlie")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_found} = Chats.leave_chat(chat.nanoid, charlie.id)
     end
@@ -325,7 +338,8 @@ defmodule Server.ChatsTest do
       Chats.update_chat(chat, %{state: :inactive})
 
       # Should not be able to send messages
-      assert {:error, :chat_inactive} = Server.Messages.send_message(chat.nanoid, alice.id, "Hello!")
+      assert {:error, :chat_inactive} =
+               Server.Messages.send_message(chat.nanoid, alice.id, "Hello!")
     end
 
     test "still allows viewing by members" do
@@ -346,11 +360,13 @@ defmodule Server.ChatsTest do
     test "owner can update chat settings" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Alice (owner) should be able to update
       assert :ok = Server.Chats.Policy.authorize(:update_chat, alice, chat)
@@ -359,11 +375,13 @@ defmodule Server.ChatsTest do
     test "owner can delete chat" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Alice (owner) should be able to delete
       assert :ok = Server.Chats.Policy.authorize(:delete_chat, alice, chat)
@@ -372,11 +390,13 @@ defmodule Server.ChatsTest do
     test "member cannot update chat settings" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Bob (member) should not be able to update
       assert {:error, :not_owner} = Server.Chats.Policy.authorize(:update_chat, bob, chat)
@@ -385,11 +405,13 @@ defmodule Server.ChatsTest do
     test "member cannot delete chat" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Bob (member) should not be able to delete
       assert {:error, :not_owner} = Server.Chats.Policy.authorize(:delete_chat, bob, chat)
@@ -403,18 +425,20 @@ defmodule Server.ChatsTest do
       charlie = Factory.insert(:user, username: "charlie")
 
       # Create first chat with name
-      {:ok, _first_chat} = Chats.create_group_chat(
-        %{name: "Unique Name", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+      {:ok, _first_chat} =
+        Chats.create_group_chat(
+          %{name: "Unique Name", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Try to create another chat with same name
-      assert {:error, :name_taken} = Chats.create_group_chat(
-        %{name: "Unique Name", private: true, state: :active},
-        charlie.id,
-        [alice.id]
-      )
+      assert {:error, :name_taken} =
+               Chats.create_group_chat(
+                 %{name: "Unique Name", private: true, state: :active},
+                 charlie.id,
+                 [alice.id]
+               )
     end
 
     test "allows same name after original is deleted" do
@@ -423,19 +447,22 @@ defmodule Server.ChatsTest do
       charlie = Factory.insert(:user, username: "charlie")
 
       # Create and delete chat
-      {:ok, first_chat} = Chats.create_group_chat(
-        %{name: "Reusable Name", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+      {:ok, first_chat} =
+        Chats.create_group_chat(
+          %{name: "Reusable Name", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
+
       Chats.delete_chat(first_chat)
 
       # Should be able to create new chat with same name
-      assert {:ok, _second_chat} = Chats.create_group_chat(
-        %{name: "Reusable Name", private: true, state: :active},
-        charlie.id,
-        [alice.id]
-      )
+      assert {:ok, _second_chat} =
+               Chats.create_group_chat(
+                 %{name: "Reusable Name", private: true, state: :active},
+                 charlie.id,
+                 [alice.id]
+               )
     end
   end
 end

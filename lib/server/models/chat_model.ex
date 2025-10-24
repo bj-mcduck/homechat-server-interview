@@ -83,6 +83,7 @@ defmodule Server.Models.ChatModel do
         chat.members
         |> Enum.reject(&(&1.id == current_user_id))
         |> List.first()
+
       false ->
         nil
     end

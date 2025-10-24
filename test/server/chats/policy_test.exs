@@ -90,7 +90,13 @@ defmodule Server.Chats.PolicyTest do
     test "allows members to leave named chats" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert :ok = Policy.authorize(:leave_chat, alice, chat)
     end
@@ -107,7 +113,13 @@ defmodule Server.Chats.PolicyTest do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
       charlie = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_a_member} = Policy.authorize(:leave_chat, charlie, chat)
     end
@@ -117,7 +129,13 @@ defmodule Server.Chats.PolicyTest do
     test "allows owners to update chat" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert :ok = Policy.authorize(:update_chat, alice, chat)
     end
@@ -125,7 +143,13 @@ defmodule Server.Chats.PolicyTest do
     test "denies members from updating chat" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_owner} = Policy.authorize(:update_chat, bob, chat)
     end
@@ -134,7 +158,13 @@ defmodule Server.Chats.PolicyTest do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
       charlie = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_a_member} = Policy.authorize(:update_chat, charlie, chat)
     end
@@ -144,7 +174,13 @@ defmodule Server.Chats.PolicyTest do
     test "allows owners to delete chat" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert :ok = Policy.authorize(:delete_chat, alice, chat)
     end
@@ -152,7 +188,13 @@ defmodule Server.Chats.PolicyTest do
     test "denies members from deleting chat" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_owner} = Policy.authorize(:delete_chat, bob, chat)
     end
@@ -161,7 +203,13 @@ defmodule Server.Chats.PolicyTest do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
       charlie = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_a_member} = Policy.authorize(:delete_chat, charlie, chat)
     end
@@ -171,7 +219,13 @@ defmodule Server.Chats.PolicyTest do
     test "allows owners to update privacy" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert :ok = Policy.authorize(:update_privacy, alice, chat)
     end
@@ -179,7 +233,13 @@ defmodule Server.Chats.PolicyTest do
     test "denies members from updating privacy" do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_owner} = Policy.authorize(:update_privacy, bob, chat)
     end
@@ -188,7 +248,13 @@ defmodule Server.Chats.PolicyTest do
       alice = Factory.insert(:user)
       bob = Factory.insert(:user)
       charlie = Factory.insert(:user)
-      {:ok, chat} = Server.Chats.create_group_chat(%{name: "Test Group", private: true, state: :active}, alice.id, [bob.id])
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       assert {:error, :not_a_member} = Policy.authorize(:update_privacy, charlie, chat)
     end

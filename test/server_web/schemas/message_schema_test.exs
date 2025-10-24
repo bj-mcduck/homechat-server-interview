@@ -12,20 +12,24 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
 
       # Create some messages
       now = NaiveDateTime.utc_now()
-      first_message = Factory.insert(:message,
-        chat: chat,
-        user: alice,
-        content: "Hello Bob!",
-        inserted_at: now,
-        updated_at: now
-      )
-      second_message = Factory.insert(:message,
-        chat: chat,
-        user: bob,
-        content: "Hi Alice!",
-        inserted_at: NaiveDateTime.add(now, 1, :second),
-        updated_at: NaiveDateTime.add(now, 1, :second)
-      )
+
+      first_message =
+        Factory.insert(:message,
+          chat: chat,
+          user: alice,
+          content: "Hello Bob!",
+          inserted_at: now,
+          updated_at: now
+        )
+
+      second_message =
+        Factory.insert(:message,
+          chat: chat,
+          user: bob,
+          content: "Hi Alice!",
+          inserted_at: NaiveDateTime.add(now, 1, :second),
+          updated_at: NaiveDateTime.add(now, 1, :second)
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
@@ -49,12 +53,13 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: query,
-        variables: %{chatId: chat.nanoid, limit: 10, offset: 0}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: query,
+          variables: %{chatId: chat.nanoid, limit: 10, offset: 0}
+        })
 
       assert %{"data" => %{"messages" => messages}} = json_response(response, 200)
       assert length(messages) == 2
@@ -82,14 +87,16 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: query,
-        variables: %{chatId: chat.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: query,
+          variables: %{chatId: chat.nanoid}
+        })
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
     end
 
     test "returns empty list for chat with no messages" do
@@ -108,12 +115,13 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: query,
-        variables: %{chatId: chat.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: query,
+          variables: %{chatId: chat.nanoid}
+        })
 
       assert %{"data" => %{"messages" => []}} = json_response(response, 200)
     end
@@ -125,6 +133,7 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
 
       # Create 5 messages
       now = NaiveDateTime.utc_now()
+
       for i <- 1..5 do
         Factory.insert(:message,
           chat: chat,
@@ -146,12 +155,13 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: query,
-        variables: %{chatId: chat.nanoid, limit: 3, offset: 1}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: query,
+          variables: %{chatId: chat.nanoid, limit: 3, offset: 1}
+        })
 
       assert %{"data" => %{"messages" => messages}} = json_response(response, 200)
       assert length(messages) == 3
@@ -190,12 +200,13 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, content: "Hello from Alice!"}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, content: "Hello from Alice!"}
+        })
 
       assert %{"data" => %{"sendMessage" => message}} = json_response(response, 200)
       assert message["content"] == "Hello from Alice!"
@@ -220,14 +231,16 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, content: "Hello!"}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, content: "Hello!"}
+        })
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
     end
 
     test "returns error when chat is inactive" do
@@ -249,14 +262,16 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, content: "Hello!"}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, content: "Hello!"}
+        })
 
-      assert %{"errors" => [%{"message" => "This chat is no longer active"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "This chat is no longer active"}]} =
+               json_response(response, 200)
     end
 
     test "returns error with invalid content" do
@@ -275,12 +290,13 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, content: ""}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, content: ""}
+        })
 
       assert %{"errors" => [%{"message" => message}]} = json_response(response, 200)
       assert message =~ "content"

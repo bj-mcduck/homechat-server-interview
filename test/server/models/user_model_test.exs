@@ -23,16 +23,17 @@ defmodule Server.Models.UserModelTest do
       refute changeset.valid?
 
       assert %{
-        email: ["can't be blank"],
-        username: ["can't be blank"],
-        first_name: ["can't be blank"],
-        last_name: ["can't be blank"],
-        state: ["can't be blank"]
-      } = errors_on(changeset)
+               email: ["can't be blank"],
+               username: ["can't be blank"],
+               first_name: ["can't be blank"],
+               last_name: ["can't be blank"],
+               state: ["can't be blank"]
+             } = errors_on(changeset)
     end
 
     test "validates unique email" do
       user = Factory.insert(:user)
+
       attrs = %{
         email: user.email,
         username: "differentuser",
@@ -49,6 +50,7 @@ defmodule Server.Models.UserModelTest do
 
     test "validates unique username" do
       user = Factory.insert(:user)
+
       attrs = %{
         email: "different@example.com",
         username: user.username,
@@ -122,7 +124,9 @@ defmodule Server.Models.UserModelTest do
 
       changeset = UserModel.registration_changeset(%UserModel{}, attrs)
       refute changeset.valid?
-      assert %{username: ["must contain only letters, numbers, and underscores"]} = errors_on(changeset)
+
+      assert %{username: ["must contain only letters, numbers, and underscores"]} =
+               errors_on(changeset)
     end
 
     test "validates username length" do

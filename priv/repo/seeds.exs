@@ -49,14 +49,18 @@ users = [
   }
 ]
 
-created_users = Enum.map(users, fn user_attrs ->
-  case Accounts.create_user(user_attrs) do
-    {:ok, user} -> user
-    {:error, changeset} ->
-      IO.puts("Failed to create user #{user_attrs.email}: #{inspect(changeset.errors)}")
-      nil
-  end
-end) |> Enum.filter(& &1)
+created_users =
+  Enum.map(users, fn user_attrs ->
+    case Accounts.create_user(user_attrs) do
+      {:ok, user} ->
+        user
+
+      {:error, changeset} ->
+        IO.puts("Failed to create user #{user_attrs.email}: #{inspect(changeset.errors)}")
+        nil
+    end
+  end)
+  |> Enum.filter(& &1)
 
 IO.puts("Created #{length(created_users)} users")
 
@@ -72,17 +76,19 @@ IO.puts("Created #{length(created_users)} users")
 IO.puts("Created 2 direct chats")
 
 # Create group chats
-{:ok, group_chat} = Chats.create_group_chat(
-  %{name: "General Discussion", private: true, state: :active},
-  alice.id,
-  [bob.id, charlie.id, diana.id]
-)
+{:ok, group_chat} =
+  Chats.create_group_chat(
+    %{name: "General Discussion", private: true, state: :active},
+    alice.id,
+    [bob.id, charlie.id, diana.id]
+  )
 
-{:ok, public_chat} = Chats.create_group_chat(
-  %{name: "Public Chat", private: false, state: :active},
-  alice.id,
-  [bob.id, charlie.id]
-)
+{:ok, public_chat} =
+  Chats.create_group_chat(
+    %{name: "Public Chat", private: false, state: :active},
+    alice.id,
+    [bob.id, charlie.id]
+  )
 
 IO.puts("Created 2 group chats")
 
@@ -104,7 +110,9 @@ sample_messages = [
 
 Enum.each(sample_messages, fn {chat_id, user_id, content} ->
   case Messages.send_message(chat_id, user_id, content) do
-    {:ok, _message} -> :ok
+    {:ok, _message} ->
+      :ok
+
     {:error, reason} ->
       IO.puts("Failed to create message: #{inspect(reason)}")
   end

@@ -139,17 +139,19 @@ defmodule Server.Accounts do
     base_query =
       from(u in UserModel,
         where: u.state == :active,
-        where: ilike(u.username, ^search_term) or
-               ilike(u.first_name, ^search_term) or
-               ilike(u.last_name, ^search_term)
+        where:
+          ilike(u.username, ^search_term) or
+            ilike(u.first_name, ^search_term) or
+            ilike(u.last_name, ^search_term)
       )
 
     # Exclude current user from search results
-    query = if current_user_id do
-      from(u in base_query, where: u.id != ^current_user_id)
-    else
-      base_query
-    end
+    query =
+      if current_user_id do
+        from(u in base_query, where: u.id != ^current_user_id)
+      else
+        base_query
+      end
 
     Repo.all(query)
   end

@@ -13,7 +13,9 @@ defmodule Server.Messages do
   """
   def list_messages(chat_nanoid, opts \\ []) do
     case Chats.get_chat_id(chat_nanoid) do
-      nil -> []
+      nil ->
+        []
+
       chat_id ->
         MessageModel.paginated(MessageModel.base_query(), chat_id, opts)
         |> Repo.all()
@@ -25,7 +27,9 @@ defmodule Server.Messages do
   """
   def list_recent_messages(chat_nanoid, limit \\ 20) do
     case Chats.get_chat_id(chat_nanoid) do
-      nil -> []
+      nil ->
+        []
+
       chat_id ->
         MessageModel.recent(MessageModel.base_query(), chat_id, limit)
         |> Repo.all()
@@ -55,30 +59,29 @@ defmodule Server.Messages do
   Sends a message to a chat by nanoid (with permission check).
   """
   def send_message(chat_nanoid, user_id, content) do
+    with {:ok, chat} <- get_chat_or_error(chat_nanoid),
+         :ok <- validate_chat_active(chat),
+         :ok <- validate_user_membership(user_id, chat.id),
+         {:ok, message} <- create_message(%{chat_id: chat.id, user_id: user_id, content: content}) do
+      {:ok, Repo.preload(message, [:user, :chat])}
+    end
+  end
+
+  defp get_chat_or_error(chat_nanoid) do
     case Chats.get_chat(chat_nanoid) do
-      nil ->
-        {:error, :not_found}
-      chat ->
-        # Check if chat is active
-        unless chat.state == :active do
-          {:error, :chat_inactive}
-        else
-          # Check if user is a member of the chat
-          unless Chats.user_member_of_chat?(user_id, chat.id) do
-            {:error, :forbidden}
-          else
-            case create_message(%{
-              chat_id: chat.id,
-              user_id: user_id,
-              content: content
-            }) do
-              {:ok, message} ->
-                {:ok, Repo.preload(message, [:user, :chat])}
-              error ->
-                error
-            end
-          end
-        end
+      nil -> {:error, :not_found}
+      chat -> {:ok, chat}
+    end
+  end
+
+  defp validate_chat_active(%{state: :active}), do: :ok
+  defp validate_chat_active(_chat), do: {:error, :chat_inactive}
+
+  defp validate_user_membership(user_id, chat_id) do
+    if Chats.user_member_of_chat?(user_id, chat_id) do
+      :ok
+    else
+      {:error, :forbidden}
     end
   end
 

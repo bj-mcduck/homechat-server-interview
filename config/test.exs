@@ -28,8 +28,7 @@ config :logger, level: :warning
 config :phoenix, :plug_init_mode, :runtime
 
 # Guardian test configuration
-config :server, Server.Guardian,
-  secret_key: "test-secret-key-for-testing-only"
+config :server, Server.Guardian, secret_key: "test-secret-key-for-testing-only"
 
 # Argon2 test configuration (faster for tests)
 config :argon2_elixir,

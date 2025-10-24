@@ -12,6 +12,7 @@ defmodule ServerWeb.Schemas.UserSchema do
     field :id, non_null(:string) do
       resolve(fn user, _, _ -> {:ok, user.nanoid} end)
     end
+
     field :email, non_null(:string)
     field :username, non_null(:string)
     field :first_name, non_null(:string)
@@ -29,38 +30,43 @@ defmodule ServerWeb.Schemas.UserSchema do
   object :user_queries do
     field :me, :user do
       middleware(Authenticate)
+
       resolve(fn _args, %{context: %{current_user: user}} ->
         {:ok, user}
       end)
     end
 
     field :users, list_of(:user) do
-      arg :limit, :integer, default_value: 10
-      arg :offset, :integer, default_value: 0
-      arg :exclude_self, :boolean, default_value: false
+      arg(:limit, :integer, default_value: 10)
+      arg(:offset, :integer, default_value: 0)
+      arg(:exclude_self, :boolean, default_value: false)
       middleware(Authenticate)
+
       resolve(fn args, %{context: %{current_user: current_user}} ->
         users = Accounts.list_users()
 
         # Filter out current user if requested
-        users = if args.exclude_self do
-          Enum.reject(users, &(&1.id == current_user.id))
-        else
-          users
-        end
+        users =
+          if args.exclude_self do
+            Enum.reject(users, &(&1.id == current_user.id))
+          else
+            users
+          end
 
         # Apply pagination
-        users = users
-        |> Enum.drop(args.offset)
-        |> Enum.take(args.limit)
+        users =
+          users
+          |> Enum.drop(args.offset)
+          |> Enum.take(args.limit)
 
         {:ok, users}
       end)
     end
 
     field :search_users, list_of(:user) do
-      arg :query, non_null(:string)
+      arg(:query, non_null(:string))
       middleware(Authenticate)
+
       resolve(fn %{query: query}, %{context: %{current_user: user}} ->
         users = Accounts.search_users(query, user.id)
         {:ok, users}
@@ -70,11 +76,11 @@ defmodule ServerWeb.Schemas.UserSchema do
 
   object :user_mutations do
     field :register, :auth_payload do
-      arg :email, non_null(:string)
-      arg :username, non_null(:string)
-      arg :password, non_null(:string)
-      arg :first_name, non_null(:string)
-      arg :last_name, non_null(:string)
+      arg(:email, non_null(:string))
+      arg(:username, non_null(:string))
+      arg(:password, non_null(:string))
+      arg(:first_name, non_null(:string))
+      arg(:last_name, non_null(:string))
 
       resolve(fn args, _info ->
         case Accounts.create_user(args) do
@@ -91,8 +97,8 @@ defmodule ServerWeb.Schemas.UserSchema do
     end
 
     field :login, :auth_payload do
-      arg :email, non_null(:string)
-      arg :password, non_null(:string)
+      arg(:email, non_null(:string))
+      arg(:password, non_null(:string))
 
       resolve(fn %{email: email, password: password}, _info ->
         case Accounts.authenticate_user_with_token(email, password) do

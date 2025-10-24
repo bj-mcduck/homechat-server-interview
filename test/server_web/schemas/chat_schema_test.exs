@@ -13,11 +13,12 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       {:ok, alice_bob_dm} = Server.Chats.create_direct_chat(alice.id, bob.id)
 
       # Alice's group chat
-      {:ok, alice_group} = Server.Chats.create_group_chat(
-        %{name: "Alice's Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+      {:ok, alice_group} =
+        Server.Chats.create_group_chat(
+          %{name: "Alice's Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       # Public chat (Alice is not a member)
       public_chat = Factory.insert(:chat, name: "Public Chat", private: false, state: :active)
@@ -45,9 +46,10 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: query})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: query})
 
       assert %{"data" => %{"discoverableChats" => chats}} = json_response(response, 200)
       assert length(chats) == 3
@@ -75,10 +77,12 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> post("/graphql", %{query: query})
+      response =
+        build_conn()
+        |> post("/graphql", %{query: query})
 
-      assert %{"errors" => [%{"message" => "Authentication required"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "Authentication required"}]} =
+               json_response(response, 200)
     end
   end
 
@@ -107,9 +111,10 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: query, variables: %{id: chat.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: query, variables: %{id: chat.nanoid}})
 
       assert %{"data" => %{"chat" => chat_data}} = json_response(response, 200)
       assert chat_data["id"] == chat.nanoid
@@ -133,11 +138,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: query, variables: %{id: chat.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: query, variables: %{id: chat.nanoid}})
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
     end
   end
 
@@ -163,9 +170,10 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: mutation, variables: %{userId: bob.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: mutation, variables: %{userId: bob.nanoid}})
 
       assert %{"data" => %{"createDirectChat" => chat}} = json_response(response, 200)
       assert chat["private"] == true
@@ -187,9 +195,10 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: mutation, variables: %{userId: bob.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: mutation, variables: %{userId: bob.nanoid}})
 
       assert %{"data" => %{"createDirectChat" => chat}} = json_response(response, 200)
       assert chat["id"] == existing_chat.nanoid
@@ -219,15 +228,16 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{
-          name: "Test Group",
-          participantIds: [bob.nanoid, charlie.nanoid]
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{
+            name: "Test Group",
+            participantIds: [bob.nanoid, charlie.nanoid]
+          }
+        })
 
       assert %{"data" => %{"createGroupChat" => chat}} = json_response(response, 200)
       assert chat["name"] == "Test Group"
@@ -258,15 +268,16 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{
-          name: "Test Group",
-          participantIds: [alice.nanoid]
-        }
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{
+            name: "Test Group",
+            participantIds: [alice.nanoid]
+          }
+        })
 
       assert %{"errors" => [%{"message" => message}]} = json_response(response, 200)
       assert message =~ "Chat name is already taken"
@@ -296,12 +307,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{participantIds: [bob.nanoid, charlie.nanoid]}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{participantIds: [bob.nanoid, charlie.nanoid]}
+        })
 
       assert %{"data" => %{"createOrFindGroupChat" => chat}} = json_response(response, 200)
       assert chat["name"] == nil
@@ -315,7 +327,8 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       charlie = Factory.insert(:user, username: "charlie")
 
       # Create existing unnamed group
-      {:ok, existing_chat} = Server.Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
+      {:ok, existing_chat} =
+        Server.Chats.create_or_find_group_chat(alice.id, [bob.id, charlie.id])
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
@@ -327,12 +340,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{participantIds: [bob.nanoid, charlie.nanoid]}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{participantIds: [bob.nanoid, charlie.nanoid]}
+        })
 
       assert %{"data" => %{"createOrFindGroupChat" => chat}} = json_response(response, 200)
       assert chat["id"] == existing_chat.nanoid
@@ -344,11 +358,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
       charlie = Factory.insert(:user, username: "charlie")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
@@ -364,12 +380,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, userId: charlie.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, userId: charlie.nanoid}
+        })
 
       assert %{"data" => %{"addChatMember" => updated_chat}} = json_response(response, 200)
       assert length(updated_chat["members"]) == 3
@@ -381,11 +398,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       bob = Factory.insert(:user, username: "bob")
       charlie = Factory.insert(:user, username: "charlie")
       dave = Factory.insert(:user, username: "dave")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(charlie)
 
@@ -397,14 +416,16 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, userId: dave.nanoid}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, userId: dave.nanoid}
+        })
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
     end
   end
 
@@ -412,11 +433,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
     test "allows member to leave named chat" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
@@ -433,9 +456,10 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: mutation, variables: %{chatId: chat.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: mutation, variables: %{chatId: chat.nanoid}})
 
       assert %{"data" => %{"leaveChat" => updated_chat}} = json_response(response, 200)
       assert length(updated_chat["members"]) == 1
@@ -457,22 +481,26 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: mutation, variables: %{chatId: chat.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: mutation, variables: %{chatId: chat.nanoid}})
 
-      assert %{"errors" => [%{"message" => "Cannot leave direct message chats"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "Cannot leave direct message chats"}]} =
+               json_response(response, 200)
     end
 
     test "returns authorization error when user is not a member" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
       charlie = Factory.insert(:user, username: "charlie")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(charlie)
 
@@ -484,11 +512,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{query: mutation, variables: %{chatId: chat.nanoid}})
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{query: mutation, variables: %{chatId: chat.nanoid}})
 
-      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "You are not a member of this chat"}]} =
+               json_response(response, 200)
     end
   end
 
@@ -496,11 +526,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
     test "allows owner to update privacy setting" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
@@ -514,12 +546,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, private: false}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, private: false}
+        })
 
       assert %{"data" => %{"updateChatPrivacy" => updated_chat}} = json_response(response, 200)
       assert updated_chat["private"] == false
@@ -528,11 +561,13 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
     test "denies member from updating privacy" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
-      {:ok, chat} = Server.Chats.create_group_chat(
-        %{name: "Test Group", private: true, state: :active},
-        alice.id,
-        [bob.id]
-      )
+
+      {:ok, chat} =
+        Server.Chats.create_group_chat(
+          %{name: "Test Group", private: true, state: :active},
+          alice.id,
+          [bob.id]
+        )
 
       {:ok, token, _} = Guardian.encode_and_sign(bob)
 
@@ -544,14 +579,16 @@ defmodule ServerWeb.Schemas.ChatSchemaTest do
       }
       """
 
-      response = build_conn()
-      |> put_req_header("authorization", "Bearer #{token}")
-      |> post("/graphql", %{
-        query: mutation,
-        variables: %{chatId: chat.nanoid, private: false}
-      })
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: mutation,
+          variables: %{chatId: chat.nanoid, private: false}
+        })
 
-      assert %{"errors" => [%{"message" => "Only chat owners can perform this action"}]} = json_response(response, 200)
+      assert %{"errors" => [%{"message" => "Only chat owners can perform this action"}]} =
+               json_response(response, 200)
     end
   end
 end

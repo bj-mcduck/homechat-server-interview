@@ -12,7 +12,8 @@ defmodule Server.Chats do
   """
   def list_user_chats(user_id) do
     from(c in ChatModel,
-      join: cm in ChatMemberModel, on: c.id == cm.chat_id,
+      join: cm in ChatMemberModel,
+      on: c.id == cm.chat_id,
       where: cm.user_id == ^user_id and c.state == :active,
       order_by: [desc: c.updated_at]
     )
@@ -105,6 +106,7 @@ defmodule Server.Chats do
           nil ->
             # Create new unnamed chat
             create_new_chat(attrs, creator_id, participant_ids)
+
           existing_chat ->
             {:ok, existing_chat}
         end
@@ -115,6 +117,7 @@ defmodule Server.Chats do
           nil ->
             # Name is available, create new named chat with participants
             create_new_chat(attrs, creator_id, participant_ids)
+
           _existing_chat ->
             {:error, :name_taken}
         end
@@ -183,16 +186,17 @@ defmodule Server.Chats do
   Adds multiple members to a chat.
   """
   def add_chat_members(chat_id, user_ids, role \\ :member) do
-    chat_members = Enum.map(user_ids, fn user_id ->
-      %{
-        chat_id: chat_id,
-        user_id: user_id,
-        role: role,
-        nanoid: "mbr_#{Nanoid.generate(10)}",
-        inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-        updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-      }
-    end)
+    chat_members =
+      Enum.map(user_ids, fn user_id ->
+        %{
+          chat_id: chat_id,
+          user_id: user_id,
+          role: role,
+          nanoid: "mbr_#{Nanoid.generate(10)}",
+          inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+          updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+        }
+      end)
 
     case Repo.insert_all(ChatMemberModel, chat_members) do
       {count, _} when count > 0 -> {:ok, chat_members}
@@ -222,21 +226,22 @@ defmodule Server.Chats do
   Returns error if chat is unnamed (direct messages can't be left).
   """
   def leave_chat(chat_nanoid, user_id) do
-    case get_chat(chat_nanoid) do
-      nil ->
-        {:error, :not_found}
-      chat ->
-        # Only allow leaving named chats
-        if is_nil(chat.name) do
-          {:error, :cannot_leave_unnamed_chat}
-        else
-          case remove_chat_member(chat.id, user_id) do
-            :ok -> {:ok, chat}
-            error -> error
-          end
-        end
+    with {:ok, chat} <- get_chat_or_error(chat_nanoid),
+         :ok <- validate_chat_can_be_left(chat),
+         :ok <- remove_chat_member(chat.id, user_id) do
+      {:ok, chat}
     end
   end
+
+  defp get_chat_or_error(chat_nanoid) do
+    case get_chat(chat_nanoid) do
+      nil -> {:error, :not_found}
+      chat -> {:ok, chat}
+    end
+  end
+
+  defp validate_chat_can_be_left(%{name: nil}), do: {:error, :cannot_leave_unnamed_chat}
+  defp validate_chat_can_be_left(_chat), do: :ok
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking chat changes.
@@ -253,8 +258,13 @@ defmodule Server.Chats do
 
     from(chat in ChatModel,
       where: chat.state == :active and is_nil(chat.name),
-      where: fragment("? = (SELECT COUNT(*) FROM chat_members WHERE chat_id = ? AND user_id = ANY(?))",
-                     ^user_count, chat.id, ^all_user_ids),
+      where:
+        fragment(
+          "? = (SELECT COUNT(*) FROM chat_members WHERE chat_id = ? AND user_id = ANY(?))",
+          ^user_count,
+          chat.id,
+          ^all_user_ids
+        ),
       preload: [:members]
     )
     |> Repo.one()

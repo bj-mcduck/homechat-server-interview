@@ -58,7 +58,9 @@ defmodule Server.Models.UserModel do
     |> validate_required(@required ++ @optional)
     |> validate_length(:password, min: 8, max: 100)
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+\.[^\s]+$/, message: "must be a valid email")
-    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/, message: "must contain only letters, numbers, and underscores")
+    |> validate_format(:username, ~r/^[a-zA-Z0-9_]+$/,
+      message: "must contain only letters, numbers, and underscores"
+    )
     |> validate_length(:username, min: 3, max: 20)
     |> unique_constraint(:email)
     |> unique_constraint(:username)
@@ -81,6 +83,7 @@ defmodule Server.Models.UserModel do
     case changeset do
       %Ecto.Changeset{valid?: true, changes: %{password: password}} ->
         put_change(changeset, :password_hash, Argon2.hash_pwd_salt(password))
+
       _ ->
         changeset
     end

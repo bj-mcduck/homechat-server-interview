@@ -56,7 +56,7 @@ defmodule Server.Models.MessageModel do
 
     query
     |> for_chat(chat_id)
-    |> order_by([m], [desc: m.inserted_at])
+    |> order_by([m], desc: m.inserted_at)
     |> limit(^limit)
     |> offset(^offset)
   end

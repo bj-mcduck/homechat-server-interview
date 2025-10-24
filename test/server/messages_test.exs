@@ -70,11 +70,23 @@ defmodule Server.MessagesTest do
 
       # Create messages with explicit timestamps to ensure ordering
       now = NaiveDateTime.utc_now()
-      Factory.insert(:message, chat: chat, user: user, content: "First message",
-                     inserted_at: now, updated_at: now)
-      last_message = Factory.insert(:message, chat: chat, user: user, content: "Last message",
-                                   inserted_at: NaiveDateTime.add(now, 1, :second),
-                                   updated_at: NaiveDateTime.add(now, 1, :second))
+
+      Factory.insert(:message,
+        chat: chat,
+        user: user,
+        content: "First message",
+        inserted_at: now,
+        updated_at: now
+      )
+
+      last_message =
+        Factory.insert(:message,
+          chat: chat,
+          user: user,
+          content: "Last message",
+          inserted_at: NaiveDateTime.add(now, 1, :second),
+          updated_at: NaiveDateTime.add(now, 1, :second)
+        )
 
       result = Messages.get_last_message(chat.id)
       assert result.id == last_message.id

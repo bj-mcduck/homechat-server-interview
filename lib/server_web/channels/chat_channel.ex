@@ -21,6 +21,7 @@ defmodule ServerWeb.ChatChannel do
     case Chats.get_chat_id(chat_nanoid) do
       nil ->
         {:error, %{reason: "chat_not_found"}}
+
       chat_id ->
         case Chats.user_member_of_chat?(user.id, chat_id) do
           true -> {:ok, socket}
