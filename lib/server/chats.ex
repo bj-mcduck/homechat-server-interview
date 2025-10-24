@@ -33,14 +33,26 @@ defmodule Server.Chats do
 
   @doc """
   Returns the list of discoverable chats for a user (their chats + public chats).
+  Uses database-level UNION to avoid in-memory operations.
   """
   def list_discoverable_chats(user_id) do
-    user_chats = list_user_chats(user_id)
-    public_chats = list_public_chats()
+    user_chats_query = from(c in ChatModel,
+      join: cm in ChatMemberModel, on: c.id == cm.chat_id,
+      where: cm.user_id == ^user_id and c.state == :active,
+      select: c.id
+    )
 
-    # Remove duplicates (in case user is in a public chat)
-    all_chats = user_chats ++ public_chats
-    Enum.uniq_by(all_chats, & &1.id)
+    public_chats_query = from(c in ChatModel,
+      where: c.private == false and c.state == :active,
+      select: c.id
+    )
+
+    from(c in ChatModel,
+      where: c.id in subquery(user_chats_query) or c.id in subquery(public_chats_query),
+      order_by: [desc: c.updated_at],
+      distinct: true
+    )
+    |> Repo.all()
   end
 
   @doc """
