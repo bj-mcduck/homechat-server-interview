@@ -45,8 +45,8 @@ export const PUBLIC_CHATS_QUERY = gql`
 `;
 
 export const MESSAGES_QUERY = gql`
-  query Messages($chatId: String!) {
-    messages(chatId: $chatId) {
+  query Messages($chatId: String!, $before: String, $limit: Int) {
+    messages(chatId: $chatId, before: $before, limit: $limit) {
       id
       content
       insertedAt

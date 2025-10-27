@@ -34,8 +34,8 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
       query = """
-      query GetMessages($chatId: String!, $limit: Int, $offset: Int) {
-        messages(chatId: $chatId, limit: $limit, offset: $offset) {
+      query GetMessages($chatId: String!, $limit: Int, $before: String) {
+        messages(chatId: $chatId, limit: $limit, before: $before) {
           id
           content
           user {
@@ -58,16 +58,16 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
         |> put_req_header("authorization", "Bearer #{token}")
         |> post("/graphql", %{
           query: query,
-          variables: %{chatId: chat.nanoid, limit: 10, offset: 0}
+          variables: %{chatId: chat.nanoid, limit: 10}
         })
 
       assert %{"data" => %{"messages" => messages}} = json_response(response, 200)
       assert length(messages) == 2
 
-      # Messages should be ordered by inserted_at (newest first)
-      [newest, oldest] = messages
-      assert newest["id"] == second_message.nanoid
+      # Messages should be ordered by inserted_at (oldest first after reversal)
+      [oldest, newest] = messages
       assert oldest["id"] == first_message.nanoid
+      assert newest["id"] == second_message.nanoid
     end
 
     test "returns authorization error when user is not a member" do
@@ -126,7 +126,7 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
       assert %{"data" => %{"messages" => []}} = json_response(response, 200)
     end
 
-    test "supports pagination" do
+    test "supports cursor-based pagination" do
       alice = Factory.insert(:user, username: "alice")
       bob = Factory.insert(:user, username: "bob")
       {:ok, chat} = Server.Chats.create_direct_chat(alice.id, bob.id)
@@ -146,11 +146,13 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
 
       {:ok, token, _} = Guardian.encode_and_sign(alice)
 
+      # First page - get most recent 2 messages
       query = """
-      query GetMessages($chatId: String!, $limit: Int, $offset: Int) {
-        messages(chatId: $chatId, limit: $limit, offset: $offset) {
+      query GetMessages($chatId: String!, $limit: Int, $before: String) {
+        messages(chatId: $chatId, limit: $limit, before: $before) {
           id
           content
+          insertedAt
         }
       }
       """
@@ -160,15 +162,33 @@ defmodule ServerWeb.Schemas.MessageSchemaTest do
         |> put_req_header("authorization", "Bearer #{token}")
         |> post("/graphql", %{
           query: query,
-          variables: %{chatId: chat.nanoid, limit: 3, offset: 1}
+          variables: %{chatId: chat.nanoid, limit: 2}
         })
 
-      assert %{"data" => %{"messages" => messages}} = json_response(response, 200)
-      assert length(messages) == 3
-      # Should skip first message (offset: 1) and return next 3
-      assert Enum.at(messages, 0)["content"] == "Message 4"
-      assert Enum.at(messages, 1)["content"] == "Message 3"
-      assert Enum.at(messages, 2)["content"] == "Message 2"
+      assert %{"data" => %{"messages" => first_page}} = json_response(response, 200)
+      assert length(first_page) == 2
+      # Messages returned in ascending order (oldest first)
+      assert Enum.at(first_page, 0)["content"] == "Message 4"
+      assert Enum.at(first_page, 1)["content"] == "Message 5"
+
+      # Get cursor from oldest message in first page
+      oldest_message = List.first(first_page)
+      cursor = oldest_message["insertedAt"]
+
+      # Second page - get older messages
+      response =
+        build_conn()
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/graphql", %{
+          query: query,
+          variables: %{chatId: chat.nanoid, limit: 2, before: cursor}
+        })
+
+      assert %{"data" => %{"messages" => second_page}} = json_response(response, 200)
+      assert length(second_page) == 2
+      # Should get messages older than Message 4
+      assert Enum.at(second_page, 0)["content"] == "Message 2"
+      assert Enum.at(second_page, 1)["content"] == "Message 3"
     end
   end
 

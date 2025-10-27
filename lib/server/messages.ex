@@ -9,7 +9,8 @@ defmodule Server.Messages do
   alias Server.Chats
 
   @doc """
-  Returns the list of messages for a chat by nanoid.
+  Returns the list of messages for a chat with cursor-based pagination.
+  Messages are returned in DESC order (newest first) and should be reversed for display.
   """
   def list_messages(chat_nanoid, opts \\ []) do
     case Chats.get_chat_id(chat_nanoid) do
@@ -17,8 +18,9 @@ defmodule Server.Messages do
         []
 
       chat_id ->
-        MessageModel.paginated(MessageModel.base_query(), chat_id, opts)
+        MessageModel.cursor_paginated(MessageModel.base_query(), chat_id, opts)
         |> Repo.all()
+        |> Enum.reverse()  # Reverse to ASC (oldest first) for display
     end
   end
 

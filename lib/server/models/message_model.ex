@@ -72,6 +72,40 @@ defmodule Server.Models.MessageModel do
     )
   end
 
+  @doc """
+  Query for messages with cursor-based pagination.
+  Returns messages older than the given cursor timestamp.
+  If no cursor provided, returns most recent messages.
+  Results are ordered DESC (newest first) for efficient query,
+  caller should reverse for display.
+  """
+  def cursor_paginated(query \\ base_query(), chat_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 20)
+    before_cursor = Keyword.get(opts, :before)
+
+    base_query = query
+      |> for_chat(chat_id)
+      |> order_by([m], desc: m.inserted_at)
+      |> limit(^limit)
+
+    case before_cursor do
+      nil ->
+        # Initial load: get most recent messages
+        base_query
+      cursor when is_binary(cursor) ->
+        # Pagination: get messages older than cursor
+        case NaiveDateTime.from_iso8601(cursor) do
+          {:ok, naive_datetime} ->
+            from(m in base_query,
+              where: m.inserted_at < ^naive_datetime
+            )
+          {:error, _} ->
+            # Invalid cursor, return empty result
+            from(m in base_query, where: false)
+        end
+    end
+  end
+
   defp put_nanoid(changeset) do
     case get_field(changeset, :nanoid) do
       nil -> put_change(changeset, :nanoid, generate_nanoid())

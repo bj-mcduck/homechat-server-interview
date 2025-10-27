@@ -26,16 +26,81 @@ defmodule Server.MessagesTest do
   end
 
   describe "list_messages/2" do
-    test "lists messages for a chat with pagination" do
+    test "lists messages for a chat with cursor-based pagination" do
       user = Factory.insert(:user)
       other_user = Factory.insert(:user)
       {:ok, chat} = Chats.create_direct_chat(user.id, other_user.id)
 
-      # Create some messages
-      Factory.insert_list(5, :message, chat: chat, user: user)
+      # Create messages with explicit timestamps for testing
+      now = NaiveDateTime.utc_now()
 
-      messages = Messages.list_messages(chat.nanoid, limit: 3, offset: 0)
-      assert length(messages) == 3
+      Factory.insert(:message, chat: chat, user: user, content: "Message 1",
+        inserted_at: NaiveDateTime.add(now, -4, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Message 2",
+        inserted_at: NaiveDateTime.add(now, -3, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Message 3",
+        inserted_at: NaiveDateTime.add(now, -2, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Message 4",
+        inserted_at: NaiveDateTime.add(now, -1, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Message 5",
+        inserted_at: now)
+
+      # Initial load: should return most recent messages (limited by limit)
+      result = Messages.list_messages(chat.nanoid, limit: 3)
+      assert length(result) == 3
+
+      # Should be in ascending order (oldest first)
+      assert hd(result).content == "Message 3"
+      assert List.last(result).content == "Message 5"
+    end
+
+    test "cursor pagination loads older messages" do
+      user = Factory.insert(:user)
+      other_user = Factory.insert(:user)
+      {:ok, chat} = Chats.create_direct_chat(user.id, other_user.id)
+
+      now = NaiveDateTime.utc_now()
+
+      # Create 5 messages (in ascending time order)
+      Factory.insert(:message, chat: chat, user: user, content: "Oldest",
+        inserted_at: NaiveDateTime.add(now, -200, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Old",
+        inserted_at: NaiveDateTime.add(now, -100, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Middle",
+        inserted_at: NaiveDateTime.add(now, -50, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Recent",
+        inserted_at: NaiveDateTime.add(now, -10, :second))
+      Factory.insert(:message, chat: chat, user: user, content: "Latest",
+        inserted_at: now)
+
+      # Initial load (most recent 2 messages, returned in ascending order)
+      first_page = Messages.list_messages(chat.nanoid, limit: 2)
+      assert length(first_page) == 2
+      assert hd(first_page).content == "Recent"
+      assert List.last(first_page).content == "Latest"
+
+      # Get cursor from oldest message in first page (to get messages older than this)
+      oldest_in_page = hd(first_page)
+      cursor = oldest_in_page.inserted_at |> NaiveDateTime.to_iso8601()
+
+      # Load older messages (should get messages older than "Recent")
+      second_page = Messages.list_messages(chat.nanoid, limit: 2, before: cursor)
+      assert length(second_page) == 2
+      # Should get messages older than "Recent" (in ascending order for display)
+      assert hd(second_page).content == "Old"
+      assert List.last(second_page).content == "Middle"
+    end
+
+    test "handles invalid cursor gracefully" do
+      user = Factory.insert(:user)
+      other_user = Factory.insert(:user)
+      {:ok, chat} = Chats.create_direct_chat(user.id, other_user.id)
+
+      Factory.insert_list(3, :message, chat: chat, user: user)
+
+      # Invalid cursor should return empty list, not crash
+      result = Messages.list_messages(chat.nanoid, limit: 10, before: "invalid-date")
+      assert result == []
     end
 
     test "returns empty list for chat with no messages" do

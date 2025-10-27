@@ -69,7 +69,7 @@ export const ChatPage = () => {
     <Stack gap={0} style={{ flex: 1, height: '100%' }}>
       <ChatHeader chat={chat || null} />
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'auto' }}>
           <MessageList chatId={chatId} />
         </div>
         <div style={{ width: 300, borderLeft: '1px solid #e9ecef' }}>

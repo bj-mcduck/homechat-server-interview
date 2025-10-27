@@ -36,9 +36,8 @@ defmodule ServerWeb.Schemas.MessageSchema do
   object :message_queries do
     field :messages, list_of(:message) do
       arg(:chat_id, non_null(:string))
-      arg(:page, :integer, default_value: 1)
-      arg(:limit, :integer, default_value: 50)
-      arg(:offset, :integer, default_value: 0)
+      arg(:before, :string)  # ISO8601 timestamp cursor
+      arg(:limit, :integer, default_value: 20)
       middleware(Authenticate)
 
       middleware(Authorize,
@@ -47,10 +46,13 @@ defmodule ServerWeb.Schemas.MessageSchema do
         resource: &load_chat_for_auth/1
       )
 
-      resolve(fn %{chat_id: chat_id, page: page, limit: limit, offset: offset}, _info ->
-        # Use explicit offset if provided, otherwise calculate from page
-        final_offset = if offset > 0, do: offset, else: (page - 1) * limit
-        messages = Messages.list_messages(chat_id, limit: limit, offset: final_offset)
+      resolve(fn %{chat_id: chat_id} = args, _info ->
+        opts = [
+          limit: Map.get(args, :limit, 20),
+          before: Map.get(args, :before)
+        ]
+
+        messages = Messages.list_messages(chat_id, opts)
         {:ok, messages}
       end)
     end
