@@ -63,6 +63,7 @@ defmodule Server.MixProject do
       {:credo_naming, "~> 2.0", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:cors_plug, "~> 3.0"},
+      {:hammer, "~> 6.2"},
       # Authentication and password hashing
       {:argon2_elixir, "~> 4.0"},
       {:joken, "~> 2.6"},

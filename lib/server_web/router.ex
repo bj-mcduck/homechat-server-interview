@@ -7,6 +7,7 @@ defmodule ServerWeb.Router do
 
   pipeline :graphql do
     plug :accepts, ["json"]
+    plug ServerWeb.Plugs.RateLimiter
     plug ServerWeb.AuthContext
   end
 

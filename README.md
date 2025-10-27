@@ -580,6 +580,7 @@ cd client && npm test
 - **JWT Authentication** - Stateless authentication with configurable expiration
 - **Argon2 Password Hashing** - Industry-standard password hashing
 - **Authorization Policies** - Bodyguard-based authorization with Rails-like policies
+- **Rate Limiting** - Prevents brute force attacks and API abuse (5 login attempts per 5 min)
 - **Input Validation** - Comprehensive validation on all inputs
 - **SQL Injection Protection** - Ecto query builder prevents SQL injection
 - **XSS Protection** - Phoenix's built-in XSS protection
@@ -598,6 +599,45 @@ cd client && npm test
 - **Cached Denormalization** - Member names cached for chat lists
 - **Normalized Caching** - urql normalized cache for frontend state
 - **Lazy Loading** - Deferred data loading in GraphQL resolvers
+- **In-Memory Caching** - Nebulex cache for frequently accessed data
+- **Rate Limiting** - ETS-backed rate limiting for minimal overhead
+
+</details>
+
+### Rate Limiting
+
+The application implements comprehensive rate limiting to prevent abuse:
+
+**Rate Limits:**
+- **General GraphQL Queries**: 60 requests per minute per IP
+- **GraphQL Mutations**: 10 requests per minute per IP  
+- **Login Attempts**: 5 attempts per 5 minutes per IP
+
+**Rate Limited Responses:**
+
+When rate limited, requests return HTTP 429 with a JSON error response and these headers:
+- `X-RateLimit-Limit`: Maximum requests allowed in the time window
+- `X-RateLimit-Remaining`: Requests remaining in current window
+- `X-RateLimit-Reset`: Unix timestamp when the limit resets
+
+**Customization:**
+
+To adjust rate limits, modify `lib/server_web/plugs/rate_limiter.ex`.
+
+### Production Environment Variables
+
+For production deployment, set the following environment variables:
+
+**Required:**
+- `DATABASE_URL` - PostgreSQL connection string (e.g., `ecto://USER:PASS@HOST/DATABASE`)
+- `SECRET_KEY_BASE` - Phoenix secret key base (generate with `mix phx.gen.secret`)
+- `GUARDIAN_SECRET_KEY` - JWT signing key (generate with `mix guardian.gen.secret`)
+- `CORS_ORIGINS` - Comma-separated list of allowed origins (e.g., `"https://app.example.com,https://www.example.com"`)
+
+**Optional:**
+- `PORT` - HTTP port (default: 4000)
+- `HOST` - Hostname (default: 0.0.0.0)
+- `DATABASE_POOL_SIZE` - Connection pool size (default: 10)
 
 </details>
 
