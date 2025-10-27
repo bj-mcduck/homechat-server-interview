@@ -28,10 +28,19 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Guardian configuration
+# Guardian configuration (development only - production uses runtime.exs)
 config :server, Server.Guardian,
   issuer: "Server",
   secret_key: "your-secret-key-here-change-in-production"
+
+
+# Nebulex cache configuration
+config :server, Server.Cache,
+  gc_interval: :timer.hours(12),
+  max_size: 1_000_000,
+  allocated_memory: 2_000_000_000,
+  gc_cleanup_min_timeout: :timer.seconds(10),
+  gc_cleanup_max_timeout: :timer.minutes(10)
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

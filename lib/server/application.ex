@@ -10,6 +10,7 @@ defmodule Server.Application do
     children = [
       ServerWeb.Telemetry,
       Server.Repo,
+      Server.Cache,
       {DNSCluster, query: Application.get_env(:server, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Server.PubSub},
       ServerWeb.Presence,

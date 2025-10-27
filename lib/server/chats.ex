@@ -11,13 +11,22 @@ defmodule Server.Chats do
   Returns the list of active chats for a user.
   """
   def list_user_chats(user_id) do
-    from(c in ChatModel,
-      join: cm in ChatMemberModel,
-      on: c.id == cm.chat_id,
-      where: cm.user_id == ^user_id and c.state == :active,
-      order_by: [desc: c.updated_at]
-    )
-    |> Repo.all()
+    cache_key = "user_chats:#{user_id}"
+
+    case Server.Cache.get(cache_key) do
+      nil ->
+        result = from(c in ChatModel,
+          join: cm in ChatMemberModel,
+          on: c.id == cm.chat_id,
+          where: cm.user_id == ^user_id and c.state == :active,
+          order_by: [desc: c.updated_at]
+        )
+        |> Repo.all()
+
+        Server.Cache.put(cache_key, result, ttl: :timer.minutes(5))
+        result
+      cached -> cached
+    end
   end
 
   @doc """
@@ -63,7 +72,17 @@ defmodule Server.Chats do
   @doc """
   Gets a single chat by nanoid.
   """
-  def get_chat(nanoid), do: Repo.get_by(ChatModel, nanoid: nanoid)
+  def get_chat(nanoid) do
+    cache_key = "chat:#{nanoid}"
+
+    case Server.Cache.get(cache_key) do
+      nil ->
+        result = Repo.get_by(ChatModel, nanoid: nanoid)
+        Server.Cache.put(cache_key, result, ttl: :timer.minutes(5))
+        result
+      cached -> cached
+    end
+  end
 
   @doc """
   Gets a chat with members preloaded by nanoid.
@@ -175,9 +194,17 @@ defmodule Server.Chats do
   Updates a chat.
   """
   def update_chat(%ChatModel{} = chat, attrs) do
-    chat
-    |> ChatModel.changeset(attrs)
-    |> Repo.update()
+    result = chat
+      |> ChatModel.changeset(attrs)
+      |> Repo.update()
+
+    # Invalidate cache on successful update
+    case result do
+      {:ok, _} -> Server.Cache.delete("chat:#{chat.nanoid}")
+      _ -> :ok
+    end
+
+    result
   end
 
   @doc """
